@@ -338,7 +338,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
           </div>
           <div class="setup-step">
             <span class="num">2</span>
-            <div>Grant it delegated permissions: <code>Application.ReadWrite.All</code>, <code>User.ReadWrite.All</code>, <code>DelegatedPermissionGrant.ReadWrite.All</code></div>
+            <div>Grant it delegated permissions: <code>Application.ReadWrite.All</code>, <code>User.ReadWrite.All</code>, <code>DelegatedPermissionGrant.ReadWrite.All</code>, then click <strong>Grant Admin Consent</strong> (required for these permissions)</div>
           </div>
           <div class="setup-step">
             <span class="num">3</span>
@@ -359,6 +359,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
           </div>
           <button class="btn btn-white" onclick="signIn()" id="btnSignIn" style="height:37px">
             🔑 Sign In with Entra ID
+          </button>
+          <button class="btn btn-sm" onclick="grantSpaAdminConsent()" id="btnAdminConsent" style="height:37px; background:rgba(255,255,255,0.1); color:#ffd966; border:1px solid rgba(255,215,0,0.4)">
+            🛡️ Grant Admin Consent
           </button>
         </div>
 
@@ -563,7 +566,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
 
           <div class="info-box info" style="margin-top:16px">
             <span class="icon">🔑</span>
-            <div><strong>How auth works in this demo:</strong> Steps 01, 03 use your <strong>signed-in user's delegated token</strong> (MSAL.js interactive). Step 02 uses the <strong>Blueprint's own credentials</strong> (client_credentials with the secret or Managed Identity FIC from step 01.03) — because the Agent Identity must be created by its parent Blueprint.</div>
+            <div><strong>How auth works in this demo:</strong> Steps 01, 02, 03 use your <strong>signed-in user's delegated token</strong> (MSAL.js interactive) with the <strong>Agent ID Administrator</strong> role. Steps 04–05 use the <strong>Blueprint's credentials</strong> for FIC token chains. Note: in production, step 02 would use the Blueprint's own client_credentials, but browsers block that due to CORS.</div>
           </div>
 
           <div class="doc-links">
@@ -854,7 +857,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
         <div class="card-header" onclick="toggleCard(this)">
           <span class="step-badge">02.01</span>
           <h2>Create the Agent Identity</h2>
-          <span class="auth-label client-creds">🔐 Blueprint Credentials</span>
+          <span class="auth-label delegated">🔑 Delegated</span>
           <span class="chevron">▶</span>
         </div>
         <div class="card-body collapsed">
@@ -863,9 +866,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
             own identity in the directory. An Agent Blueprint can have multiple Agent Identities, but each identity belongs to exactly one blueprint.
             This identity is used for <strong>Autonomous Agent</strong> scenarios.
           </p>
-          <div class="info-box warning">
-            <span class="icon">🔐</span>
-            <div>This step authenticates using the <strong>Blueprint's own credentials</strong> (client_credentials with the secret or Managed Identity from step 01.03) — the Agent Identity must be created by its parent Blueprint, not by a user. Wait ~20 seconds after creation before proceeding to step 03.</div>
+          <div class="info-box info">
+            <span class="icon">🔑</span>
+            <div>This step uses your <strong>delegated token</strong> with the <strong>Agent ID Administrator</strong> role. In production, the Agent Identity would be created by the Blueprint's own credentials (client_credentials), but that flow is blocked by CORS in browsers. The result is identical — the Agent Identity is linked to the Blueprint via <code>agentAppId</code>.</div>
           </div>
 
           <div class="api-panel">
@@ -1441,17 +1444,33 @@ async function initMsal() {
     if (resp) {
       state.account = resp.account;
       onSignedIn(resp.account, resp.accessToken);
+      autoDetectGraphSP();
+      verifyUserRoles();
     } else {
       const accounts = state.msalInstance.getAllAccounts();
       if (accounts.length > 0) {
         state.account = accounts[0];
         onSignedIn(accounts[0]);
+        autoDetectGraphSP();
+        verifyUserRoles();
       }
     }
   } catch (err) {
     console.error('MSAL init error:', err);
     showToast('❌ MSAL init error: ' + err.message, 5000);
   }
+}
+
+function grantSpaAdminConsent() {
+  const spaClientId = el('cfg-spaClientId').value.trim();
+  if (!spaClientId) {
+    showToast('❌ Please enter the SPA Application Client ID first.', 4000);
+    return;
+  }
+  const tenantId = el('cfg-tenantId').value.trim() || 'common';
+  const url = `https://login.microsoftonline.com/${tenantId}/adminconsent?client_id=${spaClientId}&redirect_uri=${encodeURIComponent(window.location.origin + window.location.pathname)}`;
+  window.open(url, '_blank', 'width=600,height=700');
+  showToast('🛡️ Admin consent window opened. Approve the permissions, then sign out and sign back in.', 8000);
 }
 
 async function signIn() {
@@ -1486,6 +1505,12 @@ async function signIn() {
     state.account = resp.account;
     onSignedIn(resp.account, resp.accessToken);
     showToast('✅ Signed in successfully!');
+
+    // Run post-sign-in checks after a brief delay to let MSAL finish cleanup
+    setTimeout(() => {
+      autoDetectGraphSP();
+      verifyUserRoles();
+    }, 500);
   } catch (err) {
     console.error('Sign-in error:', err);
     if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
@@ -1529,12 +1554,6 @@ function onSignedIn(account, token) {
   el('userEmail').textContent = account.username || '';
   el('userTenant').textContent = tenantId;
   el('userAvatar').textContent = (account.name || '?')[0].toUpperCase();
-
-  // Auto-detect MS Graph SP Object ID
-  autoDetectGraphSP();
-
-  // Verify user roles
-  verifyUserRoles();
 }
 
 async function verifyUserRoles() {
@@ -1546,18 +1565,47 @@ async function verifyUserRoles() {
   try {
     const token = await getDelegatedToken();
 
-    // 1. Get user's directory roles
-    const rolesResp = await fetch('https://graph.microsoft.com/v1.0/me/memberOf/microsoft.graph.directoryRole?$select=displayName,roleTemplateId', {
+    // 1. Get user's directory role assignments via roleAssignments (more reliable than memberOf for new/preview roles)
+    let roles = [];
+    let roleDetails = [];
+
+    // Try transitive role assignments first (works for both direct and group-inherited roles)
+    // Use beta API since Agent ID Administrator is a preview role
+    const assignResp = await fetch('https://graph.microsoft.com/beta/me/transitiveMemberOf/microsoft.graph.directoryRole?$select=displayName,roleTemplateId&$top=100', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    const rolesData = await rolesResp.json();
-    const roles = (rolesData.value || []).map(r => r.displayName);
+    if (assignResp.ok) {
+      const assignData = await assignResp.json();
+      roleDetails = assignData.value || [];
+      roles = roleDetails.map(r => r.displayName).filter(Boolean);
+    }
+
+    // Fallback to memberOf if transitiveMemberOf didn't work
+    if (roles.length === 0) {
+      const rolesResp = await fetch('https://graph.microsoft.com/beta/me/memberOf/microsoft.graph.directoryRole?$select=displayName,roleTemplateId&$top=100', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (rolesResp.ok) {
+        const rolesData = await rolesResp.json();
+        roleDetails = rolesData.value || [];
+        roles = roleDetails.map(r => r.displayName).filter(Boolean);
+      }
+    }
+
+    console.log('Directory roles found:', roles);
+    console.log('Role details:', roleDetails);
+
+    // Check for Agent ID role with flexible name matching (preview role name may vary)
+    const agentIdRoleFound = roles.some(r =>
+      r === 'Agent ID Administrator' ||
+      (r.toLowerCase().includes('agent') && r.toLowerCase().includes('admin'))
+    );
 
     // Key roles to check
     const checks = [
       {
         name: 'Agent ID Administrator',
-        found: roles.some(r => r === 'Agent ID Administrator'),
+        found: agentIdRoleFound,
         required: true,
         hint: 'Required to create Agent Blueprints, Agent Identities, and Agentic Users'
       },
@@ -1591,6 +1639,13 @@ async function verifyUserRoles() {
       html += `<div style="${style}">${icon} <strong>${c.name}</strong> — ${c.hint}</div>`;
     }
 
+    // Show all detected roles for transparency
+    if (roles.length > 0) {
+      html += `<div style="margin-top:6px; opacity:0.7; font-size:11px">Detected roles: ${roles.join(', ')}</div>`;
+    } else {
+      html += `<div style="margin-top:6px; opacity:0.7; font-size:11px">⚠️ No directory roles detected. If the role was assigned via PIM (Privileged Identity Management), make sure it is <strong>activated</strong>. Try signing out and back in after activation.</div>`;
+    }
+
     // 2. Check consented API permissions on the SPA app
     const spaClientId = localStorage.getItem('entra_spaClientId');
     if (spaClientId) {
@@ -1621,7 +1676,9 @@ async function verifyUserRoles() {
     if (isGlobalAdmin || hasAgentIdAdmin) {
       html += '🟢 You have the required roles to run this demo.';
     } else {
-      html += '🔴 <strong>Missing required role:</strong> You need the <strong>Agent ID Administrator</strong> directory role. Ask a Global Admin to assign it to you in Entra ID → Roles and administrators.';
+      html += '🔴 <strong>Missing required role:</strong> You need the <strong>Agent ID Administrator</strong> directory role. ';
+      html += 'If assigned via <strong>PIM</strong>, make sure you have <strong>activated</strong> the role first. ';
+      html += 'Then sign out and sign back in to refresh your token.';
     }
     html += '</div>';
 
@@ -1638,17 +1695,24 @@ async function getDelegatedToken() {
   }
 
   const tokenRequest = {
-    scopes: ['https://graph.microsoft.com/.default'],
+    scopes: [
+      'Application.ReadWrite.All',
+      'User.ReadWrite.All',
+      'DelegatedPermissionGrant.ReadWrite.All',
+      'Directory.Read.All'
+    ],
     account: state.account
   };
 
   try {
     const resp = await state.msalInstance.acquireTokenSilent(tokenRequest);
+    console.log('Token scopes:', resp.scopes);
     return resp.accessToken;
   } catch (err) {
     // Fallback to interactive
     const resp = await state.msalInstance.acquireTokenPopup(tokenRequest);
     state.account = resp.account;
+    console.log('Token scopes (interactive):', resp.scopes);
     return resp.accessToken;
   }
 }
@@ -2063,27 +2127,16 @@ async function executeStep0104() {
 async function executeStep0201() {
   setLoading('btn-0201', true);
   try {
-    // Get blueprint token via client_credentials
+    const token = await getDelegatedToken();
     const bpAppId = cfg('blueprintAppId');
-    const bpSecret = cfg('blueprintSecret');
-    if (!bpAppId || !bpSecret) throw new Error('Blueprint AppId and Secret are required (complete steps 01.01–01.03 first).');
-
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const tokenBody = new URLSearchParams({
-      client_id: bpAppId, client_secret: bpSecret,
-      scope: 'https://graph.microsoft.com/.default', grant_type: 'client_credentials'
-    });
-    const tokenResp = await fetch(tokenUrl, { method: 'POST', body: tokenBody });
-    const tokenData = await tokenResp.json();
-    if (tokenData.error) throw new Error(`Blueprint token error: ${tokenData.error_description || tokenData.error}`);
-    const bpToken = tokenData.access_token;
+    if (!bpAppId) throw new Error('Blueprint AppId is required (complete step 01.01 first).');
 
     const body = {
       displayName: cfg('agentIdentityDisplayName') || "[ai] Agent Identity for Digital Worker 01",
       agentAppId: bpAppId,
       "sponsors@odata.bind": [await getSponsorUri()]
     };
-    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/serviceprincipals/Microsoft.Graph.AgentIdentity', bpToken, body);
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/serviceprincipals/Microsoft.Graph.AgentIdentity', token, body);
     const data = await resp.json();
     showResponse('response-0201', resp.status, data);
     if (resp.ok) {
