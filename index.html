@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entra Agent ID — Interactive Guided Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.27.0/lib/msal-browser.min.js"></script>
+<style>
+:root {
+  --bg: #f5f5f5; --surface: #ffffff; --surface-alt: #fafafa;
+  --primary: #0078d4; --primary-dark: #106ebe; --primary-light: #deecf9;
+  --accent: #005a9e; --danger: #d13438; --success: #107c10; --warning: #ffb900;
+  --text: #323130; --text-secondary: #605e5c; --text-muted: #a19f9d;
+  --border: #edebe9; --border-focus: #0078d4;
+  --code-bg: #1e1e1e; --code-text: #d4d4d4;
+  --sidebar-w: 300px; --radius: 8px; --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.6; }
+
+/* Layout */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+  position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100;
+  display: flex; flex-direction: column;
+}
+.sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); background: var(--primary); color: white; }
+.sidebar-header h1 { font-size: 16px; font-weight: 600; }
+.sidebar-header p { font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-section { padding: 4px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer;
+  font-size: 13px; color: var(--text-secondary); transition: all 0.15s; border-left: 3px solid transparent;
+}
+.nav-item:hover { background: var(--primary-light); color: var(--primary); }
+.nav-item.active { background: var(--primary-light); color: var(--primary); border-left-color: var(--primary); font-weight: 600; }
+.nav-item.completed .nav-dot { background: var(--success); }
+.nav-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background 0.2s; }
+.sidebar-footer { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+.sidebar-footer a { color: var(--primary); text-decoration: none; }
+
+.main { margin-left: var(--sidebar-w); flex: 1; padding: 32px 40px; max-width: 960px; }
+
+/* Sign-in banner */
+.signin-banner {
+  background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%); color: white;
+  border-radius: var(--radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow);
+}
+.signin-banner h2 { font-size: 18px; margin-bottom: 8px; }
+.signin-banner p { font-size: 13px; opacity: 0.9; margin-bottom: 16px; }
+.signin-banner .user-info {
+  display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.15);
+  border-radius: 6px; padding: 12px 16px; margin-top: 12px;
+}
+.signin-banner .user-avatar {
+  width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.signin-banner .user-details { flex: 1; }
+.signin-banner .user-details .name { font-weight: 600; font-size: 14px; }
+.signin-banner .user-details .email { font-size: 12px; opacity: 0.8; }
+.signin-banner .user-details .tenant { font-size: 11px; opacity: 0.7; }
+
+/* Setup instructions */
+.setup-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+.setup-step {
+  background: rgba(255,255,255,0.1); border-radius: 6px; padding: 12px;
+  font-size: 12px; display: flex; gap: 8px; align-items: flex-start;
+}
+.setup-step .num {
+  background: rgba(255,255,255,0.3); border-radius: 50%; width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+  font-weight: 700; flex-shrink: 0;
+}
+
+/* Cards */
+.card {
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+  border: 1px solid var(--border); margin-bottom: 24px; overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+}
+.card-header:hover { background: var(--surface-alt); }
+.card-header h2 { font-size: 15px; font-weight: 600; flex: 1; }
+.card-body { padding: 20px; }
+.card-body.collapsed { display: none; }
+.step-badge {
+  background: var(--primary); color: white; font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+}
+.chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; }
+.chevron.open { transform: rotate(90deg); }
+
+/* Forms */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.form-group input, .form-group select, .form-group textarea {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font); font-size: 13px; transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus);
+}
+.form-group input[readonly] { background: var(--surface-alt); color: var(--text-secondary); }
+.form-group .hint { font-size: 11px; color: var(--text-muted); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border: none; border-radius: 4px; font-family: var(--font); font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; }
+.btn-white { background: white; color: var(--primary); }
+.btn-white:hover { background: #e8e8e8; }
+.btn-secondary { background: var(--surface); color: var(--primary); border: 1px solid var(--primary); }
+.btn-secondary:hover { background: var(--primary-light); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+/* API Panel */
+.api-panel { background: var(--code-bg); border-radius: 6px; margin: 12px 0; overflow: hidden; }
+.api-panel-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.method-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 3px; font-family: var(--mono); }
+.method-badge.POST { background: #107c10; color: white; }
+.method-badge.GET { background: #0078d4; color: white; }
+.method-badge.PATCH { background: #ffb900; color: #323130; }
+.method-badge.DELETE { background: #d13438; color: white; }
+.api-url { font-family: var(--mono); font-size: 12px; color: #9cdcfe; word-break: break-all; }
+.api-body {
+  padding: 12px; font-family: var(--mono); font-size: 12px; color: var(--code-text);
+  white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto;
+}
+
+/* Auth label */
+.auth-label {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px;
+  border-radius: 3px; font-weight: 600; margin-left: auto;
+}
+.auth-label.delegated { background: #dff6dd; color: #107c10; }
+.auth-label.client-creds { background: #fff4ce; color: #8a6914; }
+
+/* Response */
+.response-panel { margin-top: 12px; }
+.response-header {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; font-weight: 600;
+}
+.status-badge { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-family: var(--mono); }
+.status-badge.success { background: #dff6dd; color: #107c10; }
+.status-badge.error { background: #fde7e9; color: #d13438; }
+.response-body {
+  background: var(--code-bg); border-radius: 6px; padding: 12px;
+  font-family: var(--mono); font-size: 12px; color: var(--code-text);
+  white-space: pre-wrap; word-break: break-all; max-height: 400px; overflow-y: auto;
+}
+
+/* Info boxes */
+.info-box {
+  padding: 12px 16px; border-radius: 6px; margin: 12px 0; font-size: 13px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.info-box.info { background: var(--primary-light); border-left: 3px solid var(--primary); }
+.info-box.warning { background: #fff4ce; border-left: 3px solid var(--warning); }
+.info-box.success { background: #dff6dd; border-left: 3px solid var(--success); }
+.info-box.danger { background: #fde7e9; border-left: 3px solid var(--danger); }
+.info-box .icon { font-size: 16px; flex-shrink: 0; }
+
+/* Doc links */
+.doc-links { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.doc-links h4 { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.doc-link {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+  color: var(--primary); text-decoration: none; margin-right: 16px; margin-bottom: 4px;
+}
+.doc-link:hover { text-decoration: underline; }
+
+.explanation { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.7; }
+.explanation strong { color: var(--text); }
+
+.progress-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 8px 16px; }
+.progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.3s; }
+
+/* Architecture */
+.arch-diagram {
+  background: var(--surface-alt); border: 1px solid var(--border); border-radius: 8px;
+  padding: 24px; margin: 16px 0; text-align: center;
+}
+.arch-boxes { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.arch-box {
+  padding: 12px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  width: 170px; flex: 0 0 170px; text-align: center;
+}
+.arch-box.blueprint { background: #deecf9; border: 2px solid #0078d4; color: #0078d4; }
+.arch-box.identity { background: #dff6dd; border: 2px solid #107c10; color: #107c10; }
+.arch-box.user { background: #fff4ce; border: 2px solid #ffb900; color: #8a6914; }
+.arch-box.app { background: #fde7e9; border: 2px solid #d13438; color: #d13438; }
+.arch-arrow { font-size: 20px; color: var(--text-muted); }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab {
+  padding: 8px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent;
+  color: var(--text-secondary); transition: all 0.15s;
+}
+.tab:hover { color: var(--primary); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 6px;
+  background: var(--text); color: white; font-size: 13px; z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: slideIn 0.3s ease;
+  max-width: 400px;
+}
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
+
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 16px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .setup-steps { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h1>🤖 Entra Agent ID</h1>
+      <p>Interactive Guided Demo</p>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Setup</div>
+      <div class="nav-item active" onclick="scrollToSection('signin')">
+        <span class="nav-dot"></span> Sign In & Configure
+      </div>
+      <div class="nav-item" onclick="scrollToSection('overview')">
+        <span class="nav-dot"></span> Overview & Architecture
+      </div>
+
+      <div class="nav-section">01 — Agent Blueprint</div>
+      <div class="nav-item" onclick="scrollToSection('step-0101')" id="nav-0101">
+        <span class="nav-dot"></span> 01.01 Create Blueprint
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0102')" id="nav-0102">
+        <span class="nav-dot"></span> 01.02 Create Service Principal
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0103')" id="nav-0103">
+        <span class="nav-dot"></span> 01.03 Blueprint Credential
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0104')" id="nav-0104">
+        <span class="nav-dot"></span> 01.04 Expose API Scope
+      </div>
+
+      <div class="nav-section">02 — Agent Identity</div>
+      <div class="nav-item" onclick="scrollToSection('step-0201')" id="nav-0201">
+        <span class="nav-dot"></span> 02.01 Create Agent Identity
+      </div>
+
+      <div class="nav-section">03 — Agentic User</div>
+      <div class="nav-item" onclick="scrollToSection('step-0301')" id="nav-0301">
+        <span class="nav-dot"></span> 03.01 Create Agentic User
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0302')" id="nav-0302">
+        <span class="nav-dot"></span> 03.02 Grant Permissions
+      </div>
+
+      <div class="nav-section">04 — Digital Colleague Auth</div>
+      <div class="nav-item" onclick="scrollToSection('step-0401')" id="nav-0401">
+        <span class="nav-dot"></span> 04.01 Blueprint FIC Token
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0402')" id="nav-0402">
+        <span class="nav-dot"></span> 04.02 Agent Identity FIC
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0403')" id="nav-0403">
+        <span class="nav-dot"></span> 04.03 Agent User Token
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0404')" id="nav-0404">
+        <span class="nav-dot"></span> 04.04 Test /me Endpoint
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0405')" id="nav-0405">
+        <span class="nav-dot"></span> 04.05 Get Member Groups
+      </div>
+
+      <div class="nav-section">05 — Autonomous Agent Auth</div>
+      <div class="nav-item" onclick="scrollToSection('step-0501')" id="nav-0501">
+        <span class="nav-dot"></span> 05.01 Blueprint FIC Token
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0502')" id="nav-0502">
+        <span class="nav-dot"></span> 05.02 Agent Graph Token
+      </div>
+
+      <div class="nav-section">06 — On-Behalf-Of User</div>
+      <div class="nav-item" onclick="scrollToSection('step-0601')" id="nav-0601">
+        <span class="nav-dot"></span> 06.01 Auth Code Flow
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Based on <a href="https://github.com/astaykov/entra-agent-id-preview-guide" target="_blank">astaykov/entra-agent-id-preview-guide</a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <!-- ======================== SIGN IN ======================== -->
+    <section id="signin">
+      <!-- Before sign-in -->
+      <div class="signin-banner" id="signinPanel">
+        <h2>🔐 Sign in with your Entra ID account</h2>
+        <p>Sign in interactively to run all steps in your own tenant. Your tenant ID is auto-detected from the sign-in. You need the <strong>Agent ID Administrator</strong> directory role and the required delegated permissions.</p>
+
+        <div class="setup-steps">
+          <div class="setup-step">
+            <span class="num">1</span>
+            <div>Register a <strong>Single-Page Application</strong> in Entra ID with redirect URI <code>http://localhost:8080</code></div>
+          </div>
+          <div class="setup-step">
+            <span class="num">2</span>
+            <div>Grant it delegated permissions: <code>Application.ReadWrite.All</code>, <code>User.ReadWrite.All</code>, <code>DelegatedPermissionGrant.ReadWrite.All</code></div>
+          </div>
+          <div class="setup-step">
+            <span class="num">3</span>
+            <div>Serve this HTML file locally:<br><code style="font-size:11px">python -m http.server 8080</code> or<br><code style="font-size:11px">npx http-server -p 8080</code></div>
+          </div>
+          <div class="setup-step">
+            <span class="num">4</span>
+            <div>Enter the <strong>Client ID</strong> of your SPA app below and click <strong>Sign In</strong></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top:16px">
+          <div class="form-group" style="flex:1; min-width:280px">
+            <label style="color:rgba(255,255,255,0.8)">SPA Application Client ID</label>
+            <input type="text" id="cfg-spaClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                   style="background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3); color:white"
+                   oninput="saveSpaConfig()">
+          </div>
+          <button class="btn btn-white" onclick="signIn()" id="btnSignIn" style="height:37px">
+            🔑 Sign In with Entra ID
+          </button>
+        </div>
+
+        <!-- Signed-in user info (hidden initially) -->
+        <div class="user-info" id="userInfo" style="display:none">
+          <div class="user-avatar" id="userAvatar">👤</div>
+          <div class="user-details">
+            <div class="name" id="userName"></div>
+            <div class="email" id="userEmail"></div>
+            <div class="tenant">Tenant: <span id="userTenant"></span></div>
+          </div>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:white; border:1px solid rgba(255,255,255,0.4)" onclick="signOut()">Sign Out</button>
+        </div>
+
+        <!-- Role verification panel (shown after sign-in) -->
+        <div id="roleCheckPanel" style="display:none; margin-top:12px; background:rgba(255,255,255,0.1); border-radius:8px; padding:12px 16px; font-size:12px; color:rgba(255,255,255,0.9); max-width:700px">
+          <div style="font-weight:600; margin-bottom:8px">🔍 Role & Permission Check</div>
+          <div id="roleCheckResults" style="line-height:1.8"></div>
+        </div>
+      </div>
+
+      <!-- Remaining config -->
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">⚙️ CONFIG</span>
+          <h2>Additional Configuration</h2>
+          <span class="chevron open">▶</span>
+        </div>
+        <div class="card-body">
+          <p class="explanation">
+            These additional values are needed by specific steps. The <strong>Tenant ID</strong> is auto-filled from your sign-in.
+            All values are stored <strong>only in your browser's localStorage</strong>.
+          </p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tenant ID <span style="color:var(--success)">(auto-detected)</span></label>
+              <input type="text" id="cfg-tenantId" readonly placeholder="(filled after sign-in)">
+            </div>
+            <div class="form-group">
+              <label>MS Graph Service Principal Object ID <span style="color:var(--success)">(auto-detected on sign-in)</span></label>
+              <input type="text" id="cfg-msGraphObjectId" readonly placeholder="(auto-detected after sign-in)" oninput="saveConfig()">
+              <span class="hint">Automatically resolved from your tenant on sign-in.</span>
+            </div>
+            <div class="form-group">
+              <label>Sponsor — User UPN or Group name</label>
+              <input type="text" id="cfg-sponsorInput" placeholder="e.g. admin@contoso.com or My Security Group" oninput="saveConfig()">
+              <span class="hint">Enter a user UPN (user@domain.com) or a group display name. We'll resolve the Object ID and type automatically.</span>
+            </div>
+            <div class="form-group" style="display:none">
+              <input type="hidden" id="cfg-sponsorGroupId">
+              <input type="hidden" id="cfg-sponsorType">
+              <input type="hidden" id="cfg-sponsorUri">
+            </div>
+            <div class="form-group">
+              <label>Blueprint Display Name</label>
+              <input type="text" id="cfg-blueprintDisplayName" placeholder="[ai] Blueprint for Digital Worker 01" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>Agent Identity Display Name</label>
+              <input type="text" id="cfg-agentIdentityDisplayName" placeholder="[ai] Agent Identity for Digital Worker 01" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>Agent User Display Name</label>
+              <input type="text" id="cfg-agentUserDisplayName" placeholder="[ai] Digital Worker 01 Agent User" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>Agent User UPN</label>
+              <input type="text" id="cfg-agentUserUpn" placeholder="aiDigitalWorker01@yourtenant.onmicrosoft.com" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>Agent User Mail Nickname</label>
+              <input type="text" id="cfg-agentUserMailNick" placeholder="aiDigitalWorker01" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>AI App Client ID <span style="color:var(--text-muted)">(optional, for step 06)</span></label>
+              <input type="text" id="cfg-aiClientId" placeholder="Client ID of your AI application" oninput="saveConfig()">
+            </div>
+            <div class="form-group">
+              <label>AI App Client Secret <span style="color:var(--text-muted)">(optional, for step 06)</span></label>
+              <input type="password" id="cfg-aiClientSecret" placeholder="Client secret (for auth code redemption)" oninput="saveConfig()">
+            </div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary btn-sm" onclick="saveConfig(); showToast('Configuration saved!')">💾 Save</button>
+            <button class="btn btn-secondary btn-sm" onclick="resolveSponsor()">🔍 Resolve Sponsor</button>
+            <button class="btn btn-danger btn-sm" onclick="if(confirm('Clear all saved config and tokens?')){localStorage.clear();sessionStorage.clear();location.reload()}">🗑️ Clear All</button>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Entra Agent ID Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app" target="_blank">📄 Register an Application</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/single-page-app-quickstart" target="_blank">📄 SPA Quickstart (MSAL.js)</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/permissions-reference" target="_blank">📄 Graph Permissions Reference</a>
+          </div>
+
+          <!-- Dynamic variables -->
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
+            <h3 style="font-size:14px; margin-bottom:12px;">🔗 Auto-Populated Variables <span style="font-weight:normal; color:var(--text-muted); font-size:12px">(filled as you execute steps)</span></h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Agent Blueprint App ID</label>
+                <input type="text" id="var-blueprintAppId" readonly placeholder="(set after step 01.01)">
+              </div>
+              <div class="form-group">
+                <label>Agent Blueprint Object ID</label>
+                <input type="text" id="var-blueprintObjectId" readonly placeholder="(set after step 01.01)">
+              </div>
+              <div class="form-group">
+                <label>Agent Blueprint Client Secret</label>
+                <input type="text" id="var-blueprintSecret" readonly placeholder="(set after step 01.03)">
+              </div>
+              <div class="form-group">
+                <label>Agent Identity Client ID</label>
+                <input type="text" id="var-agentIdentityId" readonly placeholder="(set after step 02.01)">
+              </div>
+              <div class="form-group">
+                <label>Agent User Object ID</label>
+                <input type="text" id="var-agentUserId" readonly placeholder="(set after step 03.01)">
+              </div>
+              <div class="form-group">
+                <label>Exposed Scope</label>
+                <input type="text" id="var-scope" readonly placeholder="(set after step 01.04)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== OVERVIEW ======================== -->
+    <section id="overview">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">📋 OVERVIEW</span>
+          <h2>Entra Agent ID — Concepts & Architecture</h2>
+          <span class="chevron open">▶</span>
+        </div>
+        <div class="card-body">
+          <p class="explanation">
+            <strong>Microsoft Entra Agent ID</strong> introduces a new identity model for AI agents. It allows organizations to create, manage, and govern AI agent identities with the same rigor applied to human identities. There are three key identity primitives:
+          </p>
+          <div class="arch-diagram">
+            <h3 style="font-size:14px; margin-bottom:16px;">Identity Hierarchy</h3>
+            <div class="arch-boxes">
+              <div class="arch-box blueprint">📘 Agent Blueprint<br><span style="font-size:10px;font-weight:normal">(Application Registration)</span></div>
+              <span class="arch-arrow">→</span>
+              <div class="arch-box identity">🤖 Agent Identity<br><span style="font-size:10px;font-weight:normal">(Service Principal)</span></div>
+              <span class="arch-arrow">→</span>
+              <div class="arch-box user">👤 Agentic User<br><span style="font-size:10px;font-weight:normal">(Digital Colleague)</span></div>
+            </div>
+            <div class="arch-boxes" style="margin-top:8px">
+              <div class="arch-box app" style="width:170px; max-width:170px; flex:0 0 170px">💻 AI Application<br><span style="font-size:10px;font-weight:normal">(Your AI App)</span></div>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px">↗ acts on-behalf-of user via Agent Blueprint scope</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+            <div class="info-box info" style="flex-direction:column">
+              <strong>🔷 Agent Blueprint</strong>
+              <span>A special application registration (<code>AgentIdentityBlueprint</code>) that defines the template. One blueprint can have multiple agent identities.</span>
+            </div>
+            <div class="info-box success" style="flex-direction:column">
+              <strong>🟢 Agent Identity</strong>
+              <span>A service principal linked to a blueprint. Used for <strong>Autonomous Agent</strong> scenarios — the agent operates under its own security context.</span>
+            </div>
+            <div class="info-box warning" style="flex-direction:column">
+              <strong>🟡 Agentic User (Digital Colleague)</strong>
+              <span>A special User object with email, Teams, OneDrive. The AI agent acts as a <strong>Digital Colleague</strong> with its own M365 identity.</span>
+            </div>
+            <div class="info-box danger" style="flex-direction:column">
+              <strong>🔴 On-Behalf-Of User</strong>
+              <span>The AI agent acts <strong>on behalf of</strong> a human user, carrying the user's security context via OAuth 2.0 authorization code flow.</span>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <h3 style="font-size:14px; margin-bottom:8px;">Authentication Scenarios</h3>
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead><tr style="background:var(--surface-alt)">
+                <th style="padding:8px; text-align:left; border-bottom:2px solid var(--border)">Scenario</th>
+                <th style="padding:8px; text-align:left; border-bottom:2px solid var(--border)">Identity Used</th>
+                <th style="padding:8px; text-align:left; border-bottom:2px solid var(--border)">Token Flow</th>
+                <th style="padding:8px; text-align:left; border-bottom:2px solid var(--border)">Steps</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style="padding:8px; border-bottom:1px solid var(--border)">Autonomous Agent</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Agent Identity</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">FIC → Client Credentials</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">05.01 → 05.02</td></tr>
+                <tr><td style="padding:8px; border-bottom:1px solid var(--border)">Digital Colleague</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Agentic User</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">FIC → FIC → user_fic</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">04.01 → 04.02 → 04.03</td></tr>
+                <tr><td style="padding:8px;">On-Behalf-Of</td>
+                    <td style="padding:8px;">Human User via AI App</td>
+                    <td style="padding:8px;">Auth Code + PKCE</td>
+                    <td style="padding:8px;">06.01</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="info-box info" style="margin-top:16px">
+            <span class="icon">🔑</span>
+            <div><strong>How auth works in this demo:</strong> Steps 01, 03 use your <strong>signed-in user's delegated token</strong> (MSAL.js interactive). Step 02 uses the <strong>Blueprint's own credentials</strong> (client_credentials with the secret or Managed Identity FIC from step 01.03) — because the Agent Identity must be created by its parent Blueprint.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Agent Identity Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals" target="_blank">📄 Application & Service Principal Objects</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/security-tokens" target="_blank">📄 Security Tokens</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow" target="_blank">📄 On-Behalf-Of Flow</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/federated-identity-credentials" target="_blank">📄 Federated Identity Credentials</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 01.01 ======================== -->
+    <section id="step-0101">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">01.01</span>
+          <h2>Create the Agent Identity Blueprint</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>Agent Identity Blueprint</strong> is a special type of application registration (<code>@odata.type: Microsoft.Graph.AgentIdentityBlueprint</code>).
+            It serves as the template for creating Agent Identities — think of it as the "class" from which agent "instances" are derived.
+            A <strong>sponsor</strong> is required to establish organizational accountability. A sponsor can be an <strong>individual user</strong> (by UPN) or a <strong>security group</strong> — enabling clear ownership and governance of the agent.
+          </p>
+          <div class="info-box info">
+            <span class="icon">ℹ️</span>
+            <div>This call uses your <strong>signed-in delegated token</strong>. The <code>@odata.type</code> field tells Microsoft Graph to create an <code>AgentIdentityBlueprint</code> rather than a regular application.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/applications/</span>
+            </div>
+            <div class="api-body">{
+  "@odata.type": "Microsoft.Graph.AgentIdentityBlueprint",
+  "displayName": "[ai] Blueprint for Digital Worker 01",
+  "sponsors@odata.bind": [
+    "https://graph.microsoft.com/v1.0/<span style="color:#ce9178">{{users|groups}}/{{sponsorId}}</span>"
+  ]
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>@odata.type</code> — Tells Graph this is an AgentIdentityBlueprint, not a regular app registration</li>
+              <li><code>displayName</code> — Human-readable name for the blueprint</li>
+              <li><code>sponsors@odata.bind</code> — OData bind to a <strong>user</strong> or <strong>security group</strong> that acts as the organizational sponsor/owner of the agent</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0101()" id="btn-0101">▶ Execute Step 01.01</button>
+          </div>
+          <div class="response-panel" id="response-0101"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/application-post-applications" target="_blank">📄 Create Application (Graph API)</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Agent Identity Blueprint</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 01.02 ======================== -->
+    <section id="step-0102">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">01.02</span>
+          <h2>Create the Agent Blueprint Service Principal</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Every application registration needs a corresponding <strong>Service Principal</strong> in the tenant.
+            For the Agent Blueprint, we create a special <code>agentIdentityBlueprintPrincipal</code> using a dedicated Graph endpoint.
+            This is what enables the blueprint to authenticate and create agent identities.
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/serviceprincipals/graph.agentIdentityBlueprintPrincipal</span>
+            </div>
+            <div class="api-body">{
+  "appId": "<span style="color:#ce9178">{{blueprintAppId}}</span>"  // from step 01.01
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>appId</code> — The Application (client) ID of the blueprint created in step 01.01</li>
+              <li>The endpoint <code>graph.agentIdentityBlueprintPrincipal</code> is an OData cast that creates an agent-specific service principal type</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0102()" id="btn-0102">▶ Execute Step 01.02</button>
+          </div>
+          <div class="response-panel" id="response-0102"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-serviceprincipals" target="_blank">📄 Create Service Principal</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals" target="_blank">📄 App & Service Principal Objects</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 01.03 ======================== -->
+    <section id="step-0103">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">01.03</span>
+          <h2>Authenticate the Blueprint (Secret or Managed Identity)</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The Blueprint needs its own credential so it can <strong>act as itself</strong> (not as a user). This is needed because:
+          </p>
+          <ul style="margin:0 0 12px 20px; line-height:1.8; font-size:13px; color:var(--text-secondary)">
+            <li><strong>Creating Agent Identities</strong> (step 02) — the Agent Identity must be created <em>by its parent Blueprint</em> using <code>client_credentials</code>, not by a user. This parent–child binding is how Entra links each identity back to its blueprint.</li>
+            <li><strong>Federated Identity Credential (FIC) token chain</strong> (steps 04–05) — the Blueprint's credential is the starting point of the token chain that lets an AI application eventually obtain tokens on behalf of the Agent User.</li>
+            <li><strong>Autonomous Agent scenario</strong> — the Blueprint authenticates itself to get a Graph token for the Agent Identity to act independently (no user present).</li>
+          </ul>
+          <p class="explanation" style="margin-bottom:12px">
+            Choose <strong>one</strong> of the two options below. A client secret is fine for demos; for production, use a Managed Identity with a Federated Identity Credential (FIC).
+          </p>
+
+          <!-- Option tabs -->
+          <div style="display:flex; gap:0; margin-bottom:0; border-bottom:2px solid var(--border)">
+            <button id="tab0103secret" class="btn btn-sm" onclick="show0103Tab('secret')" style="border-radius:6px 6px 0 0; border-bottom:2px solid var(--accent); font-weight:600">🔑 Option A: Client Secret</button>
+            <button id="tab0103fic" class="btn btn-sm" onclick="show0103Tab('fic')" style="border-radius:6px 6px 0 0; opacity:0.6">🛡️ Option B: Managed Identity (FIC)</button>
+          </div>
+
+          <!-- Option A: Client Secret -->
+          <div id="panel0103secret" style="padding:16px 0">
+            <div class="info-box warning">
+              <span class="icon">⚠️</span>
+              <div><strong>Demo/PoC only!</strong> Client secrets are easy to set up but should not be used in production — they can be leaked and have a fixed expiry. Wait ~30 seconds after this step for replication.</div>
+            </div>
+
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://graph.microsoft.com/beta/applications/<span style="color:#ce9178">{{blueprintObjectId}}</span>/addPassword</span>
+              </div>
+              <div class="api-body">{
+  "passwordCredential": {
+    "displayName": "Demo Secret",
+    "endDateTime": "2027-08-05T23:59:59Z"
+  }
+}</div>
+            </div>
+
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0103()" id="btn-0103">▶ Add Client Secret</button>
+            </div>
+            <div class="response-panel" id="response-0103"></div>
+          </div>
+
+          <!-- Option B: Managed Identity FIC -->
+          <div id="panel0103fic" style="padding:16px 0; display:none">
+            <div class="info-box info">
+              <span class="icon">🛡️</span>
+              <div><strong>Production recommended.</strong> Instead of a secret, you configure a <strong>Federated Identity Credential (FIC)</strong> on the Blueprint that trusts a <strong>Managed Identity</strong> from your Azure resource (e.g. Azure VM, App Service, Azure Function). The Managed Identity gets a token from Azure AD, and the Blueprint trusts it via the FIC — no secrets to rotate or leak.</div>
+            </div>
+
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://graph.microsoft.com/beta/applications/<span style="color:#ce9178">{{blueprintObjectId}}</span>/federatedIdentityCredentials</span>
+              </div>
+              <div class="api-body">{
+  "name": "ManagedIdentityFIC",
+  "issuer": "https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/v2.0",
+  "subject": "<span style="color:#ce9178">{{managedIdentityObjectId}}</span>",
+  "audiences": ["api://AzureADTokenExchange"]
+}</div>
+            </div>
+
+            <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+              <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+              <ul style="margin:8px 0 0 20px; line-height:2">
+                <li><code>name</code> — A unique name for this federated credential</li>
+                <li><code>issuer</code> — The Entra ID token issuer URL for your tenant</li>
+                <li><code>subject</code> — The Object ID of your Azure Managed Identity (User-Assigned or System-Assigned)</li>
+                <li><code>audiences</code> — Must be <code>api://AzureADTokenExchange</code> for Azure-to-Azure FIC scenarios</li>
+              </ul>
+            </details>
+
+            <div class="form-group" style="margin:12px 0">
+              <label>Managed Identity Object ID</label>
+              <input type="text" id="cfg-managedIdentityObjectId" placeholder="Object ID of your Azure Managed Identity" oninput="saveConfig()">
+              <span class="hint">Find this in the Azure Portal → your Managed Identity resource → Overview → Object (principal) ID</span>
+            </div>
+
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0103FIC()" id="btn-0103fic">▶ Add Federated Identity Credential</button>
+            </div>
+            <div class="response-panel" id="response-0103fic"></div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/application-addpassword" target="_blank">📄 Add Password Credential (Graph API)</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/application-post-federatedidentitycredentials" target="_blank">📄 Create Federated Identity Credential (Graph API)</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation" target="_blank">📄 Workload Identity Federation Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview" target="_blank">📄 Managed Identities for Azure Resources</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 01.04 ======================== -->
+    <section id="step-0104">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">01.04</span>
+          <h2>Expose API Scope for the Blueprint</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Expose an OAuth 2.0 permission scope (<code>access_agent</code>) on the Agent Blueprint. This is needed for the
+            <strong>On-Behalf-Of</strong> scenario (step 06) where an end user delegates access to the AI Agent through the blueprint.
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge PATCH">PATCH</span>
+              <span class="api-url">https://graph.microsoft.com/beta/applications/<span style="color:#ce9178">{{blueprintObjectId}}</span></span>
+            </div>
+            <div class="api-body">{
+  "identifierUris": ["api://<span style="color:#ce9178">{{blueprintAppId}}</span>"],
+  "api": {
+    "oauth2PermissionScopes": [{
+      "adminConsentDescription": "Allow the application to access the agent on behalf of the signed-in user.",
+      "adminConsentDisplayName": "Access agent",
+      "id": "<span style="color:#ce9178">{{auto-generated-guid}}</span>",
+      "isEnabled": true,
+      "type": "User",
+      "value": "access_agent"
+    }]
+  }
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>identifierUris</code> — Sets the App ID URI (api://&lt;appId&gt;)</li>
+              <li><code>oauth2PermissionScopes</code> — Defines a delegated permission scope for consent</li>
+              <li><code>value</code> — The scope string: <code>api://&lt;appId&gt;/access_agent</code></li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0104()" id="btn-0104">▶ Execute Step 01.04</button>
+          </div>
+          <div class="response-panel" id="response-0104"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-configure-app-expose-web-apis" target="_blank">📄 Expose a Web API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/scopes-oidc" target="_blank">📄 Scopes & Permissions</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 02.01 ======================== -->
+    <section id="step-0201">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">02.01</span>
+          <h2>Create the Agent Identity</h2>
+          <span class="auth-label client-creds">🔐 Blueprint Credentials</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>Agent Identity</strong> is a special service principal linked to the Agent Blueprint. It represents the agent's
+            own identity in the directory. An Agent Blueprint can have multiple Agent Identities, but each identity belongs to exactly one blueprint.
+            This identity is used for <strong>Autonomous Agent</strong> scenarios.
+          </p>
+          <div class="info-box warning">
+            <span class="icon">🔐</span>
+            <div>This step authenticates using the <strong>Blueprint's own credentials</strong> (client_credentials with the secret or Managed Identity from step 01.03) — the Agent Identity must be created by its parent Blueprint, not by a user. Wait ~20 seconds after creation before proceeding to step 03.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/serviceprincipals/Microsoft.Graph.AgentIdentity</span>
+            </div>
+            <div class="api-body">{
+  "displayName": "[ai] Agent Identity for Digital Worker 01",
+  "agentAppId": "<span style="color:#ce9178">{{blueprintAppId}}</span>",
+  "sponsors@odata.bind": [
+    "https://graph.microsoft.com/v1.0/<span style="color:#ce9178">{{users|groups}}/{{sponsorId}}</span>"
+  ]
+}
+
+// Auth: client_credentials token from Blueprint app (not user delegated)</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>agentAppId</code> — Links this identity to the parent Agent Blueprint</li>
+              <li><code>sponsors@odata.bind</code> — Same sponsor (user or group) for governance</li>
+              <li><code>Microsoft.Graph.AgentIdentity</code> — OData cast for creating this special service principal type</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0201()" id="btn-0201">▶ Execute Step 02.01</button>
+          </div>
+          <div class="response-panel" id="response-0201"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/serviceprincipal-post-serviceprincipals" target="_blank">📄 Create Service Principal</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Agent Identity Concepts</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 03.01 ======================== -->
+    <section id="step-0301">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">03.01</span>
+          <h2>Create the Agentic User (Digital Colleague)</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>Agentic User</strong> (<strong>Digital Colleague</strong>) is a special <code>User</code> of type <code>microsoft.graph.agentUser</code>.
+            Unlike a regular user, this digital worker has its own email, Teams presence, OneDrive, and calendar — but is driven by AI.
+            The <code>identityParentId</code> links it to the Agent Identity from step 02.
+          </p>
+          <div class="info-box info">
+            <span class="icon">ℹ️</span>
+            <div>This uses your <strong>delegated token</strong> with <code>User.ReadWrite.All</code> permission. The <code>@odata.type: microsoft.graph.agentUser</code> distinguishes it from a regular human user. Wait ~15 seconds for replication.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/users</span>
+            </div>
+            <div class="api-body">{
+  "@odata.type": "microsoft.graph.agentUser",
+  "displayName": "[ai] Digital Worker 01 Agent User",
+  "userPrincipalName": "<span style="color:#ce9178">{{agentUserUpn}}</span>",
+  "mailNickname": "<span style="color:#ce9178">{{agentUserMailNick}}</span>",
+  "accountEnabled": true,
+  "identityParentId": "<span style="color:#ce9178">{{agentIdentityId}}</span>"
+}</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0301()" id="btn-0301">▶ Execute Step 03.01</button>
+          </div>
+          <div class="response-panel" id="response-0301"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/user-post-users" target="_blank">📄 Create User</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Digital Colleague Concept</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 03.02 ======================== -->
+    <section id="step-0302">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">03.02</span>
+          <h2>Grant Permissions for the Agentic User</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            By <strong>least privilege</strong>, an Agentic User has <strong>zero permissions by default</strong>.
+            You must explicitly create an <code>oauth2PermissionGrant</code> so the Agent Identity can access Graph APIs on behalf of the Agentic User.
+          </p>
+
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0302-api')">API Call</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0302-consent')">Admin Consent URL</div>
+          </div>
+
+          <div class="tab-content active" id="tab-0302-api">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://graph.microsoft.com/beta/oauth2PermissionGrants</span>
+              </div>
+              <div class="api-body">{
+  "clientId": "<span style="color:#ce9178">{{agentIdentityId}}</span>",
+  "consentType": "Principal",
+  "principalId": "<span style="color:#ce9178">{{agentUserId}}</span>",
+  "resourceId": "<span style="color:#ce9178">{{msGraphObjectId}}</span>",
+  "scope": "User.Read GroupMember.Read.All Chat.ReadWrite Calendars.ReadWrite Mail.ReadWrite Mail.Send Contacts.Read People.Read",
+  "startDateTime": "2025-01-01T00:00:00Z",
+  "expiryDateTime": "2027-01-01T00:00:00Z"
+}</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0302()" id="btn-0302">▶ Execute Step 03.02</button>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-0302-consent">
+            <p class="explanation">Alternatively, use the Microsoft Entra Admin Consent flow:</p>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="openAdminConsent()">🔗 Open Admin Consent Page</button>
+            </div>
+            <div class="api-panel" style="margin-top:12px">
+              <div class="api-panel-header">
+                <span class="method-badge GET">GET</span>
+                <span class="api-url" style="font-size:11px">https://login.microsoftonline.com/{tenant}/v2.0/adminconsent?client_id={agent_identity_id}&scope=...&redirect_uri=https://entra.microsoft.com/TokenAuthorize</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="response-panel" id="response-0302"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/oauth2permissiongrant-post" target="_blank">📄 Create OAuth2 Permission Grant</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/permissions-consent-overview" target="_blank">📄 Permissions & Consent</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/grant-admin-consent" target="_blank">📄 Admin Consent</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 04.01 ======================== -->
+    <section id="step-0401">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">04.01</span>
+          <h2>Obtain Blueprint FIC Token (Digital Colleague)</h2>
+          <span class="auth-label client-creds">🔐 Blueprint Credentials</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The Digital Colleague auth involves a chain of <strong>Federated Identity Credential (FIC)</strong> tokens.
+            First, the Agent Blueprint authenticates with its own credentials and requests a FIC token scoped to
+            <code>api://AzureADTokenExchange</code>. The <code>fmi_path</code> parameter is a Microsoft-specific extension
+            pointing to the target Agent Identity.
+          </p>
+          <div class="info-box info">
+            <span class="icon">🔗</span>
+            <div>
+              <strong>What is FIC and why is it needed here?</strong><br>
+              A <strong>Federated Identity Credential (FIC)</strong> establishes a trust relationship between two identities without sharing secrets. Instead of the Agent Identity having its own client secret, it <em>trusts tokens issued by the Blueprint</em>. This is how Entra enforces the parent–child relationship: only the Blueprint can create tokens that the Agent Identity will accept.<br><br>
+              <strong>The token chain works like this:</strong> Blueprint credential → FIC token (intermediate) → Agent Identity token → final Graph token. Each hop proves trust without exposing secrets between entities. This is the same concept used by Managed Identities and GitHub Actions OIDC — one identity vouches for another.
+            </div>
+          </div>
+          <div class="info-box info">
+            <span class="icon">🔑</span>
+            <div><code>fmi_path</code> is a custom OAuth extension. It tells Entra to issue a Federated Identity Credential token that can be exchanged for an Agent Identity token in the next step.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+            </div>
+            <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
+
+scope      = api://AzureADTokenExchange/.default
+grant_type = client_credentials
+fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span>   // custom extension</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0401()" id="btn-0401">▶ Execute Step 04.01</button>
+          </div>
+          <div class="response-panel" id="response-0401"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow" target="_blank">📄 Client Credentials Flow</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/federated-identity-credentials" target="_blank">📄 Federated Identity Credentials</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 04.02 ======================== -->
+    <section id="step-0402">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">04.02</span>
+          <h2>Obtain Agent Identity FIC Token</h2>
+          <span class="auth-label client-creds">🔐 FIC Chain</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Using the Blueprint FIC token from step 04.01, request a second FIC token for the <strong>Agent Identity</strong>.
+            The <code>client_assertion</code> carries the Blueprint FIC token as a JWT bearer assertion, proving the trust chain:
+            Blueprint → Agent Identity.
+          </p>
+          <div class="info-box info">
+            <span class="icon">🔗</span>
+            <div>
+              <strong>Why a second FIC hop?</strong> The Blueprint FIC token from step 04.01 proves <em>"I am the Blueprint and I vouch for this Agent Identity"</em>. This step exchanges that proof for a token scoped to the Agent Identity itself. This two-hop pattern ensures that neither the AI application nor the Blueprint can directly impersonate the Agent Identity — both hops must succeed, enforcing the governance chain.
+            </div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+            </div>
+            <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
+scope                  = api://AzureADTokenExchange/.default
+grant_type             = client_credentials
+client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+client_assertion       = <span style="color:#ce9178">{{blueprintFicToken}}</span>  // from step 04.01</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0402()" id="btn-0402">▶ Execute Step 04.02</button>
+          </div>
+          <div class="response-panel" id="response-0402"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow#second-case-access-token-request-with-a-certificate" target="_blank">📄 Client Assertion Flow</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/federated-identity-credentials" target="_blank">📄 Federated Identity Credentials</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 04.03 ======================== -->
+    <section id="step-0403">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">04.03</span>
+          <h2>Obtain Agent User Token (Digital Colleague)</h2>
+          <span class="auth-label client-creds">🔐 FIC Chain</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Final step in the Digital Colleague auth chain. Using both FIC tokens (Blueprint + Agent Identity),
+            request an MS Graph access token for the Agentic User. The custom <code>grant_type=user_fic</code>
+            with <code>requested_token_use=on_behalf_of</code> issues a token representing the Digital Colleague.
+          </p>
+          <div class="info-box info">
+            <span class="icon">🔗</span>
+            <div>
+              <strong>The complete FIC chain:</strong> This is the culmination of the 3-hop trust chain. The <code>client_assertion</code> (Blueprint FIC token) proves the Blueprint's identity, while <code>user_federated_identity_credential</code> (Agent Identity FIC token) proves the Agent Identity's identity. Together, they authorize Entra to issue a token for the Agentic User — a real M365 user object the agent can act as. The <code>user_fic</code> grant type is specific to this Digital Colleague scenario and is not used in standard OAuth flows.
+            </div>
+          </div>
+          <div class="info-box success">
+            <span class="icon">✅</span>
+            <div>The resulting token lets you call MS Graph <strong>as the Digital Colleague</strong> — with its own email, Teams, calendar, etc.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+            </div>
+            <div class="api-body">client_id                           = <span style="color:#ce9178">{{agentIdentityId}}</span>
+client_assertion_type              = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+client_assertion                   = <span style="color:#ce9178">{{blueprintFicToken}}</span>
+grant_type                         = user_fic           // custom grant type
+requested_token_use                = on_behalf_of
+scope                              = https://graph.microsoft.com/.default
+username                           = <span style="color:#ce9178">{{agentUserUpn}}</span>
+user_federated_identity_credential = <span style="color:#ce9178">{{agentIdentityFicToken}}</span></div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0403()" id="btn-0403">▶ Execute Step 04.03</button>
+          </div>
+          <div class="response-panel" id="response-0403"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow" target="_blank">📄 On-Behalf-Of Flow</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 04.04 ======================== -->
+    <section id="step-0404">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">04.04</span>
+          <h2>Test: Call /me as the Digital Colleague</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🧪 Agent User Token</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Verify the Digital Colleague identity by calling <code>/me</code>. This should return the Agentic User's profile,
+            confirming the token correctly represents the Digital Colleague.
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge GET">GET</span>
+              <span class="api-url">https://graph.microsoft.com/v1.0/me</span>
+            </div>
+            <div class="api-body">// Authorization: Bearer {{agentUserToken}}  (from step 04.03)</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0404()" id="btn-0404">▶ Execute Step 04.04</button>
+          </div>
+          <div class="response-panel" id="response-0404"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 04.05 ======================== -->
+    <section id="step-0405">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">04.05</span>
+          <h2>Test: Get Member Groups</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🧪 Agent User Token</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Test the Agentic User's group memberships. Add the Digital Colleague to security groups first to see results.
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/v1.0/me/getMemberGroups</span>
+            </div>
+            <div class="api-body">{ "securityEnabledOnly": true }
+
+// Authorization: Bearer {{agentUserToken}}</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0405()" id="btn-0405">▶ Execute Step 04.05</button>
+          </div>
+          <div class="response-panel" id="response-0405"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 05.01 ======================== -->
+    <section id="step-0501">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">05.01</span>
+          <h2>Obtain Blueprint FIC Token (Autonomous Agent)</h2>
+          <span class="auth-label client-creds">🔐 Blueprint Credentials</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            For the <strong>Autonomous Agent</strong> scenario, the Agent Identity operates under its own security context —
+            no human user involved. First step: obtain a Blueprint FIC token (identical to 04.01).
+          </p>
+          <div class="info-box info">
+            <span class="icon">🔗</span>
+            <div>
+              <strong>Autonomous vs. Digital Colleague — when to use which?</strong><br>
+              • <strong>Digital Colleague</strong> (section 04): The agent has its own M365 identity — email, Teams, calendar. Use when the agent needs to interact as a "person" in the organization (e.g., a virtual assistant that sends emails, joins meetings, chats on Teams). Requires an Agentic User (step 03) and a 3-hop FIC chain.<br>
+              • <strong>Autonomous Agent</strong> (this section): The agent acts under the Agent Identity's service principal — no user identity needed. Use for backend/API agents that process data, call APIs, or perform automated tasks without needing a user mailbox or Teams presence. Only requires a 2-hop FIC chain (Blueprint → Agent Identity → Graph).<br><br>
+              Both scenarios start the same way — with a Blueprint FIC token — but diverge at the next step.
+            </div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+            </div>
+            <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
+
+scope      = api://AzureADTokenExchange/.default
+grant_type = client_credentials
+fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span></div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0501()" id="btn-0501">▶ Execute Step 05.01</button>
+          </div>
+          <div class="response-panel" id="response-0501"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 05.02 ======================== -->
+    <section id="step-0502">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">05.02</span>
+          <h2>Obtain Agent Identity MS Graph Token</h2>
+          <span class="auth-label client-creds">🔐 FIC Chain</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Using the Blueprint FIC token, request an MS Graph access token for the Agent Identity.
+            Unlike Digital Colleague (which uses <code>user_fic</code>), the Autonomous Agent uses standard
+            <code>client_credentials</code> with a JWT bearer assertion.
+          </p>
+          <div class="info-box info">
+            <span class="icon">🔗</span>
+            <div>
+              <strong>Why is this simpler than Digital Colleague?</strong> The Autonomous Agent only needs 2 hops: Blueprint FIC → Agent Identity Graph token. There's no Agentic User involved, so no <code>user_fic</code> grant type or third token exchange. The Agent Identity authenticates directly as a service principal. The permissions it gets are the <strong>application permissions</strong> granted to it via admin consent (step 03.02), not delegated user permissions.
+            </div>
+          </div>
+          <div class="info-box success">
+            <span class="icon">✅</span>
+            <div>This token represents the <strong>Autonomous Agent</strong> — it can access any Graph resources the Agent Identity has application permissions for.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+            </div>
+            <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
+scope                  = https://graph.microsoft.com/.default
+grant_type             = client_credentials
+client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+client_assertion       = <span style="color:#ce9178">{{autonomousFicToken}}</span></div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0502()" id="btn-0502">▶ Execute Step 05.02</button>
+          </div>
+          <div class="response-panel" id="response-0502"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 06.01 ======================== -->
+    <section id="step-0601">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">06.01</span>
+          <h2>End-User Authentication (On-Behalf-Of)</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🌐 Interactive</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            In this scenario, the AI Agent acts <strong>on behalf of a human user</strong>, carrying the user's full security context.
+            Uses the standard OAuth 2.0 <strong>Authorization Code Flow</strong>. The AI Application requests the
+            <code>access_agent</code> scope exposed by the Agent Blueprint (step 01.04).
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge GET">GET</span>
+              <span class="api-url" style="font-size:11px">https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize</span>
+            </div>
+            <div class="api-body">client_id     = <span style="color:#ce9178">{{aiClientId}}</span>
+response_type = code
+redirect_uri  = https://jwt.ms
+scope         = api://<span style="color:#ce9178">{{blueprintAppId}}</span>/access_agent offline_access
+state         = rnd-<span style="color:#ce9178">{{random}}</span>
+response_mode = query</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0601()">🔗 Open Authorization URL</button>
+          </div>
+
+          <div style="margin-top:16px">
+            <p class="explanation">After authenticating, you'll be redirected to <code>jwt.ms</code> with a <code>code</code> parameter. Paste it below to redeem:</p>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label>Authorization Code</label>
+                <input type="text" id="input-authCode" placeholder="Paste the authorization code from the redirect URL">
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="redeemAuthCode()">🔄 Redeem Authorization Code</button>
+            </div>
+          </div>
+
+          <div class="response-panel" id="response-0601"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow" target="_blank">📄 Authorization Code Flow</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow" target="_blank">📄 On-Behalf-Of Flow</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+// ==================== STATE ====================
+const state = {
+  msalInstance: null,
+  account: null,
+  blueprintFicToken: null,
+  agentIdentityFicToken: null,
+  agentUserToken: null,
+  autonomousFicToken: null,
+  autonomousGraphToken: null,
+  completedSteps: new Set()
+};
+
+// ==================== MSAL SETUP ====================
+async function initMsal() {
+  const spaClientId = localStorage.getItem('entra_spaClientId');
+  if (!spaClientId) return;
+
+  const msalConfig = {
+    auth: {
+      clientId: spaClientId,
+      authority: `https://login.microsoftonline.com/common`,
+      redirectUri: window.location.origin + window.location.pathname,
+      navigateToLoginRequestUrl: true
+    },
+    cache: {
+      cacheLocation: 'sessionStorage',
+      storeAuthStateInCookie: false
+    },
+    system: {
+      loggerOptions: {
+        logLevel: msal.LogLevel.Warning,
+        piiLoggingEnabled: false
+      }
+    }
+  };
+
+  try {
+    state.msalInstance = new msal.PublicClientApplication(msalConfig);
+    await state.msalInstance.initialize();
+    console.log('MSAL v3 initialized successfully');
+
+    // Handle redirect promise (for redirect flow fallback)
+    const resp = await state.msalInstance.handleRedirectPromise();
+    if (resp) {
+      state.account = resp.account;
+      onSignedIn(resp.account, resp.accessToken);
+    } else {
+      const accounts = state.msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        state.account = accounts[0];
+        onSignedIn(accounts[0]);
+      }
+    }
+  } catch (err) {
+    console.error('MSAL init error:', err);
+    showToast('❌ MSAL init error: ' + err.message, 5000);
+  }
+}
+
+async function signIn() {
+  const spaClientId = el('cfg-spaClientId').value.trim();
+  if (!spaClientId) {
+    showToast('❌ Please enter the SPA Application Client ID first.', 4000);
+    return;
+  }
+  localStorage.setItem('entra_spaClientId', spaClientId);
+
+  if (!state.msalInstance) {
+    await initMsal();
+  }
+
+  if (!state.msalInstance) {
+    showToast('❌ Failed to initialize MSAL. Check the Client ID and browser console (F12).', 5000);
+    return;
+  }
+
+  try {
+    const loginRequest = {
+      scopes: [
+        'Application.ReadWrite.All',
+        'User.ReadWrite.All',
+        'DelegatedPermissionGrant.ReadWrite.All'
+      ],
+      prompt: 'select_account'
+    };
+    console.log('Starting loginPopup...');
+    const resp = await state.msalInstance.loginPopup(loginRequest);
+    console.log('loginPopup succeeded:', resp);
+    state.account = resp.account;
+    onSignedIn(resp.account, resp.accessToken);
+    showToast('✅ Signed in successfully!');
+  } catch (err) {
+    console.error('Sign-in error:', err);
+    if (err.errorCode === 'popup_window_error' || err.errorCode === 'empty_window_error') {
+      showToast('❌ Popup blocked! Allow popups for localhost in your browser, or try the button again.', 6000);
+    } else if (err.errorCode === 'user_cancelled') {
+      showToast('Sign-in cancelled.', 3000);
+    } else {
+      showToast('❌ Sign-in failed: ' + (err.errorMessage || err.message), 6000);
+    }
+  }
+}
+
+function signOut() {
+  if (state.msalInstance && state.account) {
+    state.msalInstance.logoutPopup({ account: state.account });
+  }
+  state.account = null;
+  state.msalInstance = null;
+  sessionStorage.clear();
+  el('userInfo').style.display = 'none';
+  el('btnSignIn').style.display = '';
+  el('userName').textContent = '';
+  el('userEmail').textContent = '';
+  el('userTenant').textContent = '';
+  el('cfg-tenantId').value = '';
+  el('cfg-msGraphObjectId').value = '';
+  el('roleCheckPanel').style.display = 'none';
+  saveConfig();
+}
+
+function onSignedIn(account, token) {
+  // Extract tenant from account
+  const tenantId = account.tenantId || account.idTokenClaims?.tid || '';
+  el('cfg-tenantId').value = tenantId;
+  saveConfig();
+
+  // Update UI
+  el('btnSignIn').style.display = 'none';
+  el('userInfo').style.display = 'flex';
+  el('userName').textContent = account.name || 'Unknown';
+  el('userEmail').textContent = account.username || '';
+  el('userTenant').textContent = tenantId;
+  el('userAvatar').textContent = (account.name || '?')[0].toUpperCase();
+
+  // Auto-detect MS Graph SP Object ID
+  autoDetectGraphSP();
+
+  // Verify user roles
+  verifyUserRoles();
+}
+
+async function verifyUserRoles() {
+  const panel = el('roleCheckPanel');
+  const results = el('roleCheckResults');
+  panel.style.display = '';
+  results.innerHTML = '<span style="opacity:0.7">⏳ Checking roles and permissions...</span>';
+
+  try {
+    const token = await getDelegatedToken();
+
+    // 1. Get user's directory roles
+    const rolesResp = await fetch('https://graph.microsoft.com/v1.0/me/memberOf/microsoft.graph.directoryRole?$select=displayName,roleTemplateId', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const rolesData = await rolesResp.json();
+    const roles = (rolesData.value || []).map(r => r.displayName);
+
+    // Key roles to check
+    const checks = [
+      {
+        name: 'Agent ID Administrator',
+        found: roles.some(r => r === 'Agent ID Administrator'),
+        required: true,
+        hint: 'Required to create Agent Blueprints, Agent Identities, and Agentic Users'
+      },
+      {
+        name: 'Application Administrator',
+        found: roles.some(r => r === 'Application Administrator'),
+        required: false,
+        hint: 'Useful for managing app registrations and service principals'
+      },
+      {
+        name: 'Cloud Application Administrator',
+        found: roles.some(r => r === 'Cloud Application Administrator'),
+        required: false,
+        hint: 'Alternative to Application Administrator'
+      },
+      {
+        name: 'Global Administrator',
+        found: roles.some(r => r === 'Global Administrator'),
+        required: false,
+        hint: 'Has all permissions (supersedes all other roles)'
+      }
+    ];
+
+    const isGlobalAdmin = checks.find(c => c.name === 'Global Administrator')?.found;
+    const hasAgentIdAdmin = checks.find(c => c.name === 'Agent ID Administrator')?.found;
+
+    let html = '';
+    for (const c of checks) {
+      const icon = c.found ? '✅' : (c.required ? '❌' : '⚪');
+      const style = c.found ? 'color:#a3e4a3' : (c.required ? 'color:#f4a5a5' : 'opacity:0.6');
+      html += `<div style="${style}">${icon} <strong>${c.name}</strong> — ${c.hint}</div>`;
+    }
+
+    // 2. Check consented API permissions on the SPA app
+    const spaClientId = localStorage.getItem('entra_spaClientId');
+    if (spaClientId) {
+      const spResp = await fetch(`https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId eq '${spaClientId}'&$select=id,oauth2PermissionScopes`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const spData = await spResp.json();
+      if (spData.value && spData.value.length > 0) {
+        const spId = spData.value[0].id;
+        const grantsResp = await fetch(`https://graph.microsoft.com/v1.0/oauth2PermissionGrants?$filter=clientId eq '${spId}'&$select=scope`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const grantsData = await grantsResp.json();
+        const grantedScopes = (grantsData.value || []).map(g => g.scope).join(' ').split(' ').filter(Boolean);
+        const requiredScopes = ['Application.ReadWrite.All', 'User.ReadWrite.All', 'DelegatedPermissionGrant.ReadWrite.All'];
+        html += '<div style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.15); padding-top:8px; font-weight:600">API Permissions (SPA App)</div>';
+        for (const scope of requiredScopes) {
+          const found = grantedScopes.some(s => s.toLowerCase() === scope.toLowerCase());
+          const icon = found ? '✅' : '⚠️';
+          const style = found ? 'color:#a3e4a3' : 'color:#ffe4a0';
+          html += `<div style="${style}">${icon} <code style="background:rgba(0,0,0,0.2);padding:1px 6px;border-radius:3px">${scope}</code>${found ? '' : ' — not yet consented (will be prompted on first use)'}</div>`;
+        }
+      }
+    }
+
+    // Summary
+    html += '<div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.15); font-weight:600">';
+    if (isGlobalAdmin || hasAgentIdAdmin) {
+      html += '🟢 You have the required roles to run this demo.';
+    } else {
+      html += '🔴 <strong>Missing required role:</strong> You need the <strong>Agent ID Administrator</strong> directory role. Ask a Global Admin to assign it to you in Entra ID → Roles and administrators.';
+    }
+    html += '</div>';
+
+    results.innerHTML = html;
+  } catch (err) {
+    console.error('Role check error:', err);
+    results.innerHTML = `<span style="color:#f4a5a5">⚠️ Could not verify roles: ${err.message}. You may still proceed — role issues will surface when executing steps.</span>`;
+  }
+}
+
+async function getDelegatedToken() {
+  if (!state.msalInstance || !state.account) {
+    throw new Error('Please sign in first using the button at the top of the page.');
+  }
+
+  const tokenRequest = {
+    scopes: ['https://graph.microsoft.com/.default'],
+    account: state.account
+  };
+
+  try {
+    const resp = await state.msalInstance.acquireTokenSilent(tokenRequest);
+    return resp.accessToken;
+  } catch (err) {
+    // Fallback to interactive
+    const resp = await state.msalInstance.acquireTokenPopup(tokenRequest);
+    state.account = resp.account;
+    return resp.accessToken;
+  }
+}
+
+// ==================== CONFIG MANAGEMENT ====================
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('entraAgentConfig') || '{}'); }
+  catch { return {}; }
+}
+
+function saveConfig() {
+  const cfg = {};
+  document.querySelectorAll('[id^="cfg-"], [id^="var-"]').forEach(input => {
+    const key = input.id.replace('cfg-', '').replace('var-', '');
+    if (input.value) cfg[key] = input.value;
+  });
+  localStorage.setItem('entraAgentConfig', JSON.stringify(cfg));
+  return cfg;
+}
+
+function saveSpaConfig() {
+  localStorage.setItem('entra_spaClientId', el('cfg-spaClientId').value.trim());
+}
+
+function loadConfig() {
+  // Load SPA client ID
+  const spaId = localStorage.getItem('entra_spaClientId') || '';
+  el('cfg-spaClientId').value = spaId;
+
+  // Load other config
+  const cfg = getConfig();
+  for (const [key, val] of Object.entries(cfg)) {
+    const input = document.getElementById(`cfg-${key}`) || document.getElementById(`var-${key}`);
+    if (input && val) input.value = val;
+  }
+}
+
+function setVar(id, value) {
+  const input = document.getElementById(`var-${id}`);
+  if (input) { input.value = value; }
+  saveConfig();
+}
+
+function cfg(key) { return getConfig()[key] || ''; }
+
+// ==================== AUTO-DETECT MS GRAPH SP ====================
+// Auto-detect MS Graph Service Principal Object ID on sign-in
+async function autoDetectGraphSP() {
+  try {
+    const token = await getDelegatedToken();
+    const resp = await fetch(
+      "https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId eq '00000003-0000-0000-c000-000000000000'&$select=id,displayName",
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const data = await resp.json();
+    if (data.value && data.value.length > 0) {
+      el('cfg-msGraphObjectId').value = data.value[0].id;
+      saveConfig();
+      console.log('Auto-detected MS Graph SP:', data.value[0].id);
+      showToast('✅ MS Graph Object ID auto-detected');
+    }
+  } catch (e) {
+    console.warn('Could not auto-detect MS Graph SP:', e);
+  }
+}
+
+// Resolve sponsor from UPN or group display name to an Object ID and URI
+async function resolveSponsor() {
+  const input = el('cfg-sponsorInput').value.trim();
+  if (!input) { showToast('❌ Enter a user UPN or group name first.', 4000); return; }
+
+  try {
+    const token = await getDelegatedToken();
+    let sponsorId = null;
+    let sponsorUri = null;
+    let sponsorType = null;
+
+    // Check if it looks like a UPN (contains @)
+    if (input.includes('@')) {
+      // Try to resolve as a user UPN
+      const resp = await fetch(
+        `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(input)}?$select=id,displayName,userPrincipalName`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      if (resp.ok) {
+        const user = await resp.json();
+        sponsorId = user.id;
+        sponsorUri = `https://graph.microsoft.com/v1.0/users/${user.id}`;
+        sponsorType = 'user';
+        showToast(`✅ Resolved user: ${user.displayName} (${user.id})`);
+      } else {
+        showToast('❌ User not found: ' + input, 4000);
+        return;
+      }
+    } else {
+      // Try to resolve as a group display name
+      const resp = await fetch(
+        `https://graph.microsoft.com/v1.0/groups?$filter=displayName eq '${input.replace(/'/g, "''")}'&$select=id,displayName`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      const data = await resp.json();
+      if (data.value && data.value.length > 0) {
+        sponsorId = data.value[0].id;
+        sponsorUri = `https://graph.microsoft.com/v1.0/groups/${data.value[0].id}`;
+        sponsorType = 'group';
+        showToast(`✅ Resolved group: ${data.value[0].displayName} (${data.value[0].id})`);
+      } else {
+        // Maybe it's already a GUID — try as-is
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) {
+          sponsorId = input;
+          sponsorUri = `https://graph.microsoft.com/v1.0/groups/${input}`;
+          sponsorType = 'group';
+          showToast(`✅ Using as group Object ID: ${input}`);
+        } else {
+          showToast('❌ Group not found: ' + input, 4000);
+          return;
+        }
+      }
+    }
+
+    // Save resolved values
+    el('cfg-sponsorGroupId').value = sponsorId;
+    el('cfg-sponsorType').value = sponsorType;
+    el('cfg-sponsorUri').value = sponsorUri;
+    saveConfig();
+  } catch (e) {
+    showToast('❌ ' + e.message, 5000);
+  }
+}
+
+async function getSponsorUri() {
+  // If already resolved, return it
+  const uri = cfg('sponsorUri');
+  if (uri) return uri;
+
+  // If we have a raw group ID, use it directly
+  const id = cfg('sponsorGroupId');
+  if (id) return `https://graph.microsoft.com/v1.0/groups/${id}`;
+
+  // Otherwise resolve from the sponsor input field
+  const input = (el('cfg-sponsorInput').value || '').trim();
+  if (!input) throw new Error('Please enter a Sponsor (user UPN or group name) in the configuration.');
+
+  const token = await getDelegatedToken();
+
+  if (input.includes('@')) {
+    // Resolve user UPN
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(input)}?$select=id,displayName`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) throw new Error('Sponsor user not found: ' + input);
+    const user = await resp.json();
+    const resolvedUri = `https://graph.microsoft.com/v1.0/users/${user.id}`;
+    el('cfg-sponsorGroupId').value = user.id;
+    el('cfg-sponsorType').value = 'user';
+    el('cfg-sponsorUri').value = resolvedUri;
+    saveConfig();
+    showToast(`✅ Sponsor resolved: ${user.displayName}`);
+    return resolvedUri;
+  } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) {
+    // Already a GUID
+    const resolvedUri = `https://graph.microsoft.com/v1.0/groups/${input}`;
+    el('cfg-sponsorGroupId').value = input;
+    el('cfg-sponsorType').value = 'group';
+    el('cfg-sponsorUri').value = resolvedUri;
+    saveConfig();
+    return resolvedUri;
+  } else {
+    // Resolve group by display name
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/groups?$filter=displayName eq '${input.replace(/'/g, "''")}'&$select=id,displayName`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const data = await resp.json();
+    if (!data.value || data.value.length === 0) throw new Error('Sponsor group not found: ' + input);
+    const resolvedUri = `https://graph.microsoft.com/v1.0/groups/${data.value[0].id}`;
+    el('cfg-sponsorGroupId').value = data.value[0].id;
+    el('cfg-sponsorType').value = 'group';
+    el('cfg-sponsorUri').value = resolvedUri;
+    saveConfig();
+    showToast(`✅ Sponsor resolved: ${data.value[0].displayName}`);
+    return resolvedUri;
+  }
+}
+
+// ==================== UI HELPERS ====================
+function el(id) { return document.getElementById(id); }
+
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('collapsed');
+  chevron.classList.toggle('open');
+}
+
+function scrollToSection(id) {
+  const section = document.getElementById(id);
+  if (!section) return;
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const body = section.querySelector('.card-body');
+  const chevron = section.querySelector('.chevron');
+  if (body?.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    chevron?.classList.add('open');
+  }
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.getElementById(`nav-${id.replace('step-', '')}`) ||
+    document.querySelector(`.nav-item[onclick*="${id}"]`);
+  if (navItem) navItem.classList.add('active');
+}
+
+function switchTab(tabEl, contentId) {
+  const parent = tabEl.closest('.card-body');
+  parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.getElementById(contentId)?.classList.add('active');
+}
+
+function showToast(msg, duration = 3000) {
+  const toast = document.createElement('div');
+  toast.className = 'toast'; toast.textContent = msg;
+  document.getElementById('toastContainer').appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+function markCompleted(stepId) {
+  state.completedSteps.add(stepId);
+  const nav = document.getElementById(`nav-${stepId}`);
+  if (nav) nav.classList.add('completed');
+  const total = 13;
+  el('progressFill').style.width = Math.round((state.completedSteps.size / total) * 100) + '%';
+}
+
+function setLoading(btnId, loading) {
+  const btn = el(btnId);
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn._orig = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Executing...';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = btn._orig || '▶ Execute';
+  }
+}
+
+function showResponse(panelId, status, data, extra) {
+  const panel = el(panelId);
+  if (!panel) return;
+  const isOk = status >= 200 && status < 300;
+  let bodyContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  panel.innerHTML = `
+    <div class="response-header">
+      <span>Response:</span>
+      <span class="status-badge ${isOk ? 'success' : 'error'}">${status} ${isOk ? 'Success' : 'Error'}</span>
+      ${extra ? `<span style="font-size:11px;color:var(--text-muted)">${extra}</span>` : ''}
+      <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(this.closest('.response-panel').querySelector('.response-body').textContent);showToast('Copied!')">📋 Copy</button>
+    </div>
+    <div class="response-body">${escapeHtml(bodyContent)}</div>`;
+}
+
+function showError(panelId, error) {
+  const panel = el(panelId);
+  if (!panel) return;
+  panel.innerHTML = `
+    <div class="response-header">
+      <span class="status-badge error">❌ Error</span>
+    </div>
+    <div class="response-body" style="color:#f48771">${escapeHtml(error.toString())}</div>`;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
+// ==================== GRAPH CALL HELPER ====================
+async function graphCall(method, url, token, body = null) {
+  const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'OData-Version': '4.0' };
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  return await fetch(url, opts);
+}
+
+// ==================== STEP IMPLEMENTATIONS ====================
+
+// 01.01 Create Agent Blueprint (delegated)
+async function executeStep0101() {
+  setLoading('btn-0101', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = {
+      "@odata.type": "Microsoft.Graph.AgentIdentityBlueprint",
+      "displayName": cfg('blueprintDisplayName') || "[ai] Blueprint for Digital Worker 01",      "sponsors@odata.bind": [await getSponsorUri()]
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/applications/', token, body);
+    const data = await resp.json();
+    showResponse('response-0101', resp.status, data);
+    if (resp.ok) {
+      setVar('blueprintAppId', data.appId);
+      setVar('blueprintObjectId', data.id);
+      markCompleted('0101');
+      showToast('✅ Blueprint created! AppId: ' + data.appId);
+    }
+  } catch (e) { showError('response-0101', e); }
+  setLoading('btn-0101', false);
+}
+
+// 01.02 Create Blueprint Service Principal (delegated)
+async function executeStep0102() {
+  setLoading('btn-0102', true);
+  try {
+    const token = await getDelegatedToken();
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/serviceprincipals/graph.agentIdentityBlueprintPrincipal', token, { appId: cfg('blueprintAppId') });
+    const data = await resp.json();
+    showResponse('response-0102', resp.status, data);
+    if (resp.ok) { markCompleted('0102'); showToast('✅ Blueprint SP created!'); }
+  } catch (e) { showError('response-0102', e); }
+  setLoading('btn-0102', false);
+}
+
+// 01.03 Tab switcher
+function show0103Tab(tab) {
+  const isSecret = tab === 'secret';
+  el('panel0103secret').style.display = isSecret ? '' : 'none';
+  el('panel0103fic').style.display = isSecret ? 'none' : '';
+  el('tab0103secret').style.borderBottom = isSecret ? '2px solid var(--accent)' : 'none';
+  el('tab0103secret').style.opacity = isSecret ? '1' : '0.6';
+  el('tab0103fic').style.borderBottom = isSecret ? 'none' : '2px solid var(--accent)';
+  el('tab0103fic').style.opacity = isSecret ? '0.6' : '1';
+}
+
+// 01.03 Add client secret (delegated)
+async function executeStep0103() {
+  setLoading('btn-0103', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = { passwordCredential: { displayName: "Demo Secret", endDateTime: "2027-08-05T23:59:59Z" } };
+    const resp = await graphCall('POST', `https://graph.microsoft.com/beta/applications/${cfg('blueprintObjectId')}/addPassword`, token, body);
+    const data = await resp.json();
+    showResponse('response-0103', resp.status, data, '⚠️ Save the secretText — it won\'t be shown again!');
+    if (resp.ok) {
+      setVar('blueprintSecret', data.secretText);
+      markCompleted('0103');
+      showToast('✅ Secret created! Wait ~30s for replication before step 02.');
+    }
+  } catch (e) { showError('response-0103', e); }
+  setLoading('btn-0103', false);
+}
+
+// 01.03 FIC — Add Federated Identity Credential for Managed Identity (delegated)
+async function executeStep0103FIC() {
+  setLoading('btn-0103fic', true);
+  try {
+    const miObjectId = (el('cfg-managedIdentityObjectId').value || '').trim();
+    if (!miObjectId) throw new Error('Please enter the Managed Identity Object ID.');
+    const token = await getDelegatedToken();
+    const body = {
+      name: "ManagedIdentityFIC",
+      issuer: `https://login.microsoftonline.com/${cfg('tenantId')}/v2.0`,
+      subject: miObjectId,
+      audiences: ["api://AzureADTokenExchange"]
+    };
+    const resp = await graphCall('POST', `https://graph.microsoft.com/beta/applications/${cfg('blueprintObjectId')}/federatedIdentityCredentials`, token, body);
+    const data = await resp.json();
+    showResponse('response-0103fic', resp.status, data);
+    if (resp.ok) {
+      markCompleted('0103');
+      showToast('✅ FIC created! The Blueprint now trusts your Managed Identity.');
+    }
+  } catch (e) { showError('response-0103fic', e); }
+  setLoading('btn-0103fic', false);
+}
+
+// 01.04 Expose API scope (delegated)
+async function executeStep0104() {
+  setLoading('btn-0104', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = {
+      identifierUris: [`api://${cfg('blueprintAppId')}`],
+      api: { oauth2PermissionScopes: [{
+        adminConsentDescription: "Allow the application to access the agent on behalf of the signed-in user.",
+        adminConsentDisplayName: "Access agent",
+        id: uuid(), isEnabled: true, type: "User", value: "access_agent"
+      }]}
+    };
+    const resp = await graphCall('PATCH', `https://graph.microsoft.com/beta/applications/${cfg('blueprintObjectId')}`, token, body);
+    if (resp.status === 204) {
+      const scope = `api://${cfg('blueprintAppId')}/access_agent`;
+      setVar('scope', scope);
+      showResponse('response-0104', 204, 'Success — HTTP 204 No Content. Scope exposed: ' + scope);
+      markCompleted('0104');
+      showToast('✅ API scope exposed!');
+    } else {
+      const data = await resp.json();
+      showResponse('response-0104', resp.status, data);
+    }
+  } catch (e) { showError('response-0104', e); }
+  setLoading('btn-0104', false);
+}
+
+// 02.01 Create Agent Identity (blueprint client_credentials)
+async function executeStep0201() {
+  setLoading('btn-0201', true);
+  try {
+    // Get blueprint token via client_credentials
+    const bpAppId = cfg('blueprintAppId');
+    const bpSecret = cfg('blueprintSecret');
+    if (!bpAppId || !bpSecret) throw new Error('Blueprint AppId and Secret are required (complete steps 01.01–01.03 first).');
+
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const tokenBody = new URLSearchParams({
+      client_id: bpAppId, client_secret: bpSecret,
+      scope: 'https://graph.microsoft.com/.default', grant_type: 'client_credentials'
+    });
+    const tokenResp = await fetch(tokenUrl, { method: 'POST', body: tokenBody });
+    const tokenData = await tokenResp.json();
+    if (tokenData.error) throw new Error(`Blueprint token error: ${tokenData.error_description || tokenData.error}`);
+    const bpToken = tokenData.access_token;
+
+    const body = {
+      displayName: cfg('agentIdentityDisplayName') || "[ai] Agent Identity for Digital Worker 01",
+      agentAppId: bpAppId,
+      "sponsors@odata.bind": [await getSponsorUri()]
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/serviceprincipals/Microsoft.Graph.AgentIdentity', bpToken, body);
+    const data = await resp.json();
+    showResponse('response-0201', resp.status, data);
+    if (resp.ok) {
+      setVar('agentIdentityId', data.id);
+      markCompleted('0201');
+      showToast('✅ Agent Identity created! Wait ~20s before step 03.');
+    }
+  } catch (e) { showError('response-0201', e); }
+  setLoading('btn-0201', false);
+}
+
+// 03.01 Create Agentic User (delegated)
+async function executeStep0301() {
+  setLoading('btn-0301', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = {
+      "@odata.type": "microsoft.graph.agentUser",
+      displayName: cfg('agentUserDisplayName') || "[ai] Digital Worker 01 Agent User",
+      userPrincipalName: cfg('agentUserUpn'),
+      mailNickname: cfg('agentUserMailNick'),
+      accountEnabled: true,
+      identityParentId: cfg('agentIdentityId')
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/users', token, body);
+    const data = await resp.json();
+    showResponse('response-0301', resp.status, data);
+    if (resp.ok) {
+      setVar('agentUserId', data.id);
+      markCompleted('0301');
+      showToast('✅ Agentic User created! Wait ~15s for replication.');
+    }
+  } catch (e) { showError('response-0301', e); }
+  setLoading('btn-0301', false);
+}
+
+// 03.02 Grant permissions (delegated)
+async function executeStep0302() {
+  setLoading('btn-0302', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = {
+      clientId: cfg('agentIdentityId'), consentType: "Principal",
+      principalId: cfg('agentUserId'), resourceId: cfg('msGraphObjectId'),
+      scope: "User.Read GroupMember.Read.All Chat.ReadWrite Calendars.ReadWrite Mail.ReadWrite Mail.Send Contacts.Read People.Read",
+      startDateTime: "2025-01-01T00:00:00Z", expiryDateTime: "2027-01-01T00:00:00Z"
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/oauth2PermissionGrants', token, body);
+    const data = await resp.json();
+    showResponse('response-0302', resp.status, data);
+    if (resp.ok) { markCompleted('0302'); showToast('✅ Permissions granted!'); }
+  } catch (e) { showError('response-0302', e); }
+  setLoading('btn-0302', false);
+}
+
+function openAdminConsent() {
+  const url = `https://login.microsoftonline.com/${cfg('tenantId')}/v2.0/adminconsent?client_id=${cfg('agentIdentityId')}&scope=User.Read+GroupMember.Read.All+Chat.ReadWrite+Calendars.ReadWrite+Mail.ReadWrite+Mail.Send+Contacts.Read+People.Read&redirect_uri=https://entra.microsoft.com/TokenAuthorize&state=rnd-${Date.now()}`;
+  window.open(url, '_blank');
+}
+
+// 04.01 Blueprint FIC token
+async function executeStep0401() {
+  setLoading('btn-0401', true);
+  try {
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
+      fmi_path: cfg('agentIdentityId')
+    });
+    const basicAuth = btoa(`${cfg('blueprintAppId')}:${cfg('blueprintSecret')}`);
+    const resp = await fetch(tokenUrl, {
+      method: 'POST', body, headers: { 'Authorization': `Basic ${basicAuth}` }
+    });
+    const data = await resp.json();
+    showResponse('response-0401', resp.status, data);
+    if (resp.ok) {
+      state.blueprintFicToken = data.access_token;
+      markCompleted('0401'); showToast('✅ Blueprint FIC token obtained!');
+    }
+  } catch (e) { showError('response-0401', e); }
+  setLoading('btn-0401', false);
+}
+
+// 04.02 Agent Identity FIC token
+async function executeStep0402() {
+  setLoading('btn-0402', true);
+  try {
+    if (!state.blueprintFicToken) throw new Error('Execute step 04.01 first.');
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      client_id: cfg('agentIdentityId'), scope: 'api://AzureADTokenExchange/.default',
+      grant_type: 'client_credentials',
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: state.blueprintFicToken
+    });
+    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const data = await resp.json();
+    showResponse('response-0402', resp.status, data);
+    if (resp.ok) {
+      state.agentIdentityFicToken = data.access_token;
+      markCompleted('0402'); showToast('✅ Agent Identity FIC token obtained!');
+    }
+  } catch (e) { showError('response-0402', e); }
+  setLoading('btn-0402', false);
+}
+
+// 04.03 Agent User token
+async function executeStep0403() {
+  setLoading('btn-0403', true);
+  try {
+    if (!state.blueprintFicToken || !state.agentIdentityFicToken) throw new Error('Execute steps 04.01 and 04.02 first.');
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      client_id: cfg('agentIdentityId'),
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: state.blueprintFicToken,
+      grant_type: 'user_fic', requested_token_use: 'on_behalf_of',
+      scope: 'https://graph.microsoft.com/.default',
+      username: cfg('agentUserUpn'),
+      user_federated_identity_credential: state.agentIdentityFicToken
+    });
+    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const data = await resp.json();
+    showResponse('response-0403', resp.status, data);
+    if (resp.ok) {
+      state.agentUserToken = data.access_token;
+      markCompleted('0403'); showToast('✅ Agent User token obtained! You can now call Graph as the Digital Colleague.');
+    }
+  } catch (e) { showError('response-0403', e); }
+  setLoading('btn-0403', false);
+}
+
+// 04.04 Test /me
+async function executeStep0404() {
+  setLoading('btn-0404', true);
+  try {
+    if (!state.agentUserToken) throw new Error('Execute step 04.03 first.');
+    const resp = await graphCall('GET', 'https://graph.microsoft.com/v1.0/me', state.agentUserToken);
+    const data = await resp.json();
+    showResponse('response-0404', resp.status, data);
+    if (resp.ok) { markCompleted('0404'); showToast('✅ You are: ' + data.displayName); }
+  } catch (e) { showError('response-0404', e); }
+  setLoading('btn-0404', false);
+}
+
+// 04.05 Get member groups
+async function executeStep0405() {
+  setLoading('btn-0405', true);
+  try {
+    if (!state.agentUserToken) throw new Error('Execute step 04.03 first.');
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/v1.0/me/getMemberGroups', state.agentUserToken, { securityEnabledOnly: true });
+    const data = await resp.json();
+    showResponse('response-0405', resp.status, data);
+    if (resp.ok) { markCompleted('0405'); showToast('✅ Found ' + (data.value?.length || 0) + ' group(s).'); }
+  } catch (e) { showError('response-0405', e); }
+  setLoading('btn-0405', false);
+}
+
+// 05.01 Blueprint FIC token (autonomous)
+async function executeStep0501() {
+  setLoading('btn-0501', true);
+  try {
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
+      fmi_path: cfg('agentIdentityId')
+    });
+    const basicAuth = btoa(`${cfg('blueprintAppId')}:${cfg('blueprintSecret')}`);
+    const resp = await fetch(tokenUrl, {
+      method: 'POST', body, headers: { 'Authorization': `Basic ${basicAuth}` }
+    });
+    const data = await resp.json();
+    showResponse('response-0501', resp.status, data);
+    if (resp.ok) {
+      state.autonomousFicToken = data.access_token;
+      markCompleted('0501'); showToast('✅ Autonomous FIC token obtained!');
+    }
+  } catch (e) { showError('response-0501', e); }
+  setLoading('btn-0501', false);
+}
+
+// 05.02 Agent Identity Graph token
+async function executeStep0502() {
+  setLoading('btn-0502', true);
+  try {
+    if (!state.autonomousFicToken) throw new Error('Execute step 05.01 first.');
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      client_id: cfg('agentIdentityId'), scope: 'https://graph.microsoft.com/.default',
+      grant_type: 'client_credentials',
+      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+      client_assertion: state.autonomousFicToken
+    });
+    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const data = await resp.json();
+    showResponse('response-0502', resp.status, data);
+    if (resp.ok) {
+      state.autonomousGraphToken = data.access_token;
+      markCompleted('0502'); showToast('✅ Autonomous Agent Graph token obtained!');
+    }
+  } catch (e) { showError('response-0502', e); }
+  setLoading('btn-0502', false);
+}
+
+// 06.01 Open auth code URL
+function executeStep0601() {
+  const aiClientId = cfg('aiClientId');
+  const bpAppId = cfg('blueprintAppId');
+  if (!aiClientId || !bpAppId) {
+    showToast('❌ Configure AI App Client ID and complete step 01 first.', 4000); return;
+  }
+  const url = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/authorize?client_id=${aiClientId}&response_type=code&redirect_uri=${encodeURIComponent('https://jwt.ms')}&scope=${encodeURIComponent(`api://${bpAppId}/access_agent offline_access`)}&state=rnd-${Date.now()}&response_mode=query`;
+  window.open(url, '_blank');
+  markCompleted('0601');
+}
+
+async function redeemAuthCode() {
+  const code = el('input-authCode').value;
+  if (!code) { showToast('❌ Paste the authorization code first.'); return; }
+  try {
+    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+    const body = new URLSearchParams({
+      client_id: cfg('aiClientId'), client_secret: cfg('aiClientSecret'),
+      grant_type: 'authorization_code', code,
+      redirect_uri: 'https://jwt.ms',
+      scope: `api://${cfg('blueprintAppId')}/access_agent offline_access`
+    });
+    const resp = await fetch(tokenUrl, { method: 'POST', body });
+    const data = await resp.json();
+    showResponse('response-0601', resp.status, data);
+    if (resp.ok) showToast('✅ Authorization code redeemed!');
+  } catch (e) { showError('response-0601', e); }
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', async () => {
+  loadConfig();
+  // Auto-init MSAL if SPA client ID is saved
+  const spaId = localStorage.getItem('entra_spaClientId');
+  if (spaId) await initMsal();
+});
+</script>
+</body>
+</html>
