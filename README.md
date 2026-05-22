@@ -66,6 +66,25 @@ Each step includes:
 
 5. **Follow the steps** — the app auto-detects your tenant ID, MS Graph SP, and verifies you have the required roles.
 
+### Disabling CORS for Token Endpoint Calls
+
+Steps 04–05 (FIC token chain) use `client_credentials` flows against the Entra token endpoint, which blocks browser CORS requests by design. The app will try direct calls first and automatically fall back to generating **curl/PowerShell** commands if CORS blocks the request.
+
+To avoid the copy-paste workflow entirely, you can launch Chrome with CORS disabled:
+
+```bash
+# Windows
+chrome.exe --disable-web-security --user-data-dir="C:\tmp\chrome-cors-demo"
+
+# macOS
+open -na "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-cors-demo"
+
+# Linux
+google-chrome --disable-web-security --user-data-dir="/tmp/chrome-cors-demo"
+```
+
+> ⚠️ **Security warning:** This disables all CORS enforcement in that Chrome instance. Use **only** for this demo and close the window when done. A separate `--user-data-dir` is used so your regular Chrome profile is unaffected. You'll see a yellow banner: *"You are using an unsupported command-line flag"* — that's expected.
+
 ## Features
 
 - **Interactive sign-in** via MSAL.js v3 — authenticates against your own Entra tenant

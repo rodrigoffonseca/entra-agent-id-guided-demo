@@ -991,8 +991,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
   "principalId": "<span style="color:#ce9178">{{agentUserId}}</span>",
   "resourceId": "<span style="color:#ce9178">{{msGraphObjectId}}</span>",
   "scope": "User.Read GroupMember.Read.All Chat.ReadWrite Calendars.ReadWrite Mail.ReadWrite Mail.Send Contacts.Read People.Read",
-  "startDateTime": "2025-01-01T00:00:00Z",
-  "expiryDateTime": "2027-01-01T00:00:00Z"
+  "startTime": "2025-01-01T00:00:00Z",
+  "expiryTime": "2027-01-01T00:00:00Z"
 }</div>
             </div>
             <div class="btn-group">
@@ -1066,8 +1066,18 @@ grant_type = client_credentials
 fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span>   // custom extension</div>
           </div>
 
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>The app will first try a direct REST call. If CORS blocks it, a <code>curl</code> command will be generated automatically — just run it in a terminal and paste the JSON response back below.</div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-primary" onclick="executeStep0401()" id="btn-0401">▶ Execute Step 04.01</button>
+          </div>
+          <div id="cmd-0401" style="display:none">
+            <pre class="api-body" id="cmd-text-0401" style="white-space:pre-wrap;cursor:pointer;position:relative" onclick="copyCmd('cmd-text-0401')" title="Click to copy"></pre>
+            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+            <textarea id="paste-0401" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+            <button class="btn btn-primary" onclick="parseStep0401()" style="margin-top:6px">✅ Parse & Store Token</button>
           </div>
           <div class="response-panel" id="response-0401"></div>
 
@@ -1114,8 +1124,18 @@ client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion       = <span style="color:#ce9178">{{blueprintFicToken}}</span>  // from step 04.01</div>
           </div>
 
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>Tries direct REST call first. If CORS blocks it, a curl/PowerShell command will appear below.</div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-primary" onclick="executeStep0402()" id="btn-0402">▶ Execute Step 04.02</button>
+          </div>
+          <div id="cmd-0402" style="display:none">
+            <pre class="api-body" id="cmd-text-0402" style="white-space:pre-wrap;cursor:pointer;position:relative" onclick="copyCmd('cmd-text-0402')" title="Click to copy"></pre>
+            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+            <textarea id="paste-0402" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+            <button class="btn btn-primary" onclick="parseStep0402()" style="margin-top:6px">✅ Parse & Store Token</button>
           </div>
           <div class="response-panel" id="response-0402"></div>
 
@@ -1169,8 +1189,18 @@ username                           = <span style="color:#ce9178">{{agentUserUpn}
 user_federated_identity_credential = <span style="color:#ce9178">{{agentIdentityFicToken}}</span></div>
           </div>
 
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>Tries direct REST call first. If CORS blocks it, a curl/PowerShell command will appear below.</div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-primary" onclick="executeStep0403()" id="btn-0403">▶ Execute Step 04.03</button>
+          </div>
+          <div id="cmd-0403" style="display:none">
+            <pre class="api-body" id="cmd-text-0403" style="white-space:pre-wrap;cursor:pointer;position:relative" onclick="copyCmd('cmd-text-0403')" title="Click to copy"></pre>
+            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+            <textarea id="paste-0403" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+            <button class="btn btn-primary" onclick="parseStep0403()" style="margin-top:6px">✅ Parse & Store Token</button>
           </div>
           <div class="response-panel" id="response-0403"></div>
 
@@ -1281,8 +1311,18 @@ grant_type = client_credentials
 fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span></div>
           </div>
 
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>Tries direct REST call first. If CORS blocks it, a curl/PowerShell command will appear below.</div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-primary" onclick="executeStep0501()" id="btn-0501">▶ Execute Step 05.01</button>
+          </div>
+          <div id="cmd-0501" style="display:none">
+            <pre class="api-body" id="cmd-text-0501" style="white-space:pre-wrap;cursor:pointer;position:relative" onclick="copyCmd('cmd-text-0501')" title="Click to copy"></pre>
+            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+            <textarea id="paste-0501" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+            <button class="btn btn-primary" onclick="parseStep0501()" style="margin-top:6px">✅ Parse & Store Token</button>
           </div>
           <div class="response-panel" id="response-0501"></div>
         </div>
@@ -1327,8 +1367,18 @@ client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion       = <span style="color:#ce9178">{{autonomousFicToken}}</span></div>
           </div>
 
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>Tries direct REST call first. If CORS blocks it, a curl/PowerShell command will appear below.</div>
+          </div>
           <div class="btn-group">
             <button class="btn btn-primary" onclick="executeStep0502()" id="btn-0502">▶ Execute Step 05.02</button>
+          </div>
+          <div id="cmd-0502" style="display:none">
+            <pre class="api-body" id="cmd-text-0502" style="white-space:pre-wrap;cursor:pointer;position:relative" onclick="copyCmd('cmd-text-0502')" title="Click to copy"></pre>
+            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+            <textarea id="paste-0502" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+            <button class="btn btn-primary" onclick="parseStep0502()" style="margin-top:6px">✅ Parse & Store Token</button>
           </div>
           <div class="response-panel" id="response-0502"></div>
         </div>
@@ -1356,12 +1406,14 @@ client_assertion       = <span style="color:#ce9178">{{autonomousFicToken}}</spa
               <span class="method-badge GET">GET</span>
               <span class="api-url" style="font-size:11px">https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize</span>
             </div>
-            <div class="api-body">client_id     = <span style="color:#ce9178">{{aiClientId}}</span>
-response_type = code
-redirect_uri  = https://jwt.ms
-scope         = api://<span style="color:#ce9178">{{blueprintAppId}}</span>/access_agent offline_access
-state         = rnd-<span style="color:#ce9178">{{random}}</span>
-response_mode = query</div>
+            <div class="api-body">client_id             = <span style="color:#ce9178">{{aiClientId}}</span>
+response_type         = code
+redirect_uri          = https://jwt.ms
+scope                 = api://<span style="color:#ce9178">{{blueprintAppId}}</span>/access_agent offline_access
+state                 = rnd-<span style="color:#ce9178">{{random}}</span>
+response_mode         = query
+code_challenge        = <span style="color:#ce9178">{{SHA256(code_verifier)}}</span>   // PKCE
+code_challenge_method = S256</div>
           </div>
 
           <div class="btn-group">
@@ -1369,11 +1421,19 @@ response_mode = query</div>
           </div>
 
           <div style="margin-top:16px">
-            <p class="explanation">After authenticating, you'll be redirected to <code>jwt.ms</code> with a <code>code</code> parameter. Paste it below to redeem:</p>
+            <div class="info-box warning">
+              <span class="icon">📋</span>
+              <div>
+                After signing in, you'll be redirected to <code>jwt.ms</code>. The page will appear blank — that's expected!<br>
+                Look at the <strong>browser address bar</strong>. The URL will look like:<br>
+                <code style="word-break:break-all">https://jwt.ms/?code=<strong>0.AXYA...very-long-string...</strong>&state=rnd-...</code><br>
+                Copy everything between <code>code=</code> and <code>&state</code> and paste it below.
+              </div>
+            </div>
             <div class="form-grid">
               <div class="form-group full">
                 <label>Authorization Code</label>
-                <input type="text" id="input-authCode" placeholder="Paste the authorization code from the redirect URL">
+                <input type="text" id="input-authCode" placeholder="Paste the code value from the redirect URL">
               </div>
             </div>
             <div class="btn-group">
@@ -1940,6 +2000,28 @@ function showToast(msg, duration = 3000) {
   setTimeout(() => toast.remove(), duration);
 }
 
+function copyCmd(preId) {
+  const text = document.getElementById(preId).textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('📋 Copied to clipboard!'));
+}
+
+function buildPsCmd(params, tokenUrl) {
+  const lines = Object.entries(params).map(([k, v]) => `  ${k} = "${v}"`).join("\n");
+  return `$body = @{\n${lines}\n}\n$resp = Invoke-RestMethod -Uri "${tokenUrl}" -Method POST -Body $body -ContentType "application/x-www-form-urlencoded"\n$resp | ConvertTo-Json -Depth 5`;
+}
+
+function extractJson(text) {
+  // Find the first { ... } JSON block in pasted text (skip PowerShell command output)
+  const start = text.indexOf('{');
+  if (start === -1) throw new Error('No JSON object found. Make sure you paste the output (the JSON part), not the command.');
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') { depth--; if (depth === 0) return text.substring(start, i + 1); }
+  }
+  throw new Error('Incomplete JSON found. Make sure you copy the entire JSON output.');
+}
+
 function markCompleted(stepId) {
   state.completedSteps.add(stepId);
   const nav = document.getElementById(`nav-${stepId}`);
@@ -2182,7 +2264,7 @@ async function executeStep0302() {
       clientId: cfg('agentIdentityId'), consentType: "Principal",
       principalId: cfg('agentUserId'), resourceId: cfg('msGraphObjectId'),
       scope: "User.Read GroupMember.Read.All Chat.ReadWrite Calendars.ReadWrite Mail.ReadWrite Mail.Send Contacts.Read People.Read",
-      startDateTime: "2025-01-01T00:00:00Z", expiryDateTime: "2027-01-01T00:00:00Z"
+      startTime: "2025-01-01T00:00:00Z", expiryTime: "2027-01-01T00:00:00Z"
     };
     const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/oauth2PermissionGrants', token, body);
     const data = await resp.json();
@@ -2197,76 +2279,134 @@ function openAdminConsent() {
   window.open(url, '_blank');
 }
 
+// ==================== STEPS 04–05: FIC TOKEN CHAIN ====================
+
+// Helper: try direct fetch, if CORS blocks it, show curl + PowerShell commands
+async function ficTokenRequest(stepId, params, tokenUrl, useMultipart, stateKey, successMsg) {
+  setLoading('btn-' + stepId, true);
+  try {
+    let body;
+    if (useMultipart) {
+      body = new FormData();
+      Object.entries(params).forEach(([k, v]) => body.append(k, v));
+    } else {
+      body = new URLSearchParams(params);
+    }
+    const resp = await fetch(tokenUrl, { method: 'POST', body });
+    const data = await resp.json();
+    showResponse('response-' + stepId, resp.status, data);
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    state[stateKey] = data.access_token;
+    markCompleted(stepId); showToast(successMsg);
+  } catch (e) {
+    if (e.message === 'Failed to fetch' || e.name === 'TypeError') {
+      // CORS blocked — show curl + PowerShell commands
+      const cmdDiv = document.getElementById('cmd-' + stepId);
+      if (cmdDiv) {
+        const curlCmd = buildCurlCmd(params, tokenUrl, useMultipart);
+        const psCmd = buildPsCmd(params, tokenUrl);
+        document.getElementById('cmd-text-' + stepId).textContent = curlCmd + '\n\n# --- OR PowerShell equivalent ---\n\n' + psCmd;
+        cmdDiv.style.display = 'block';
+        navigator.clipboard.writeText(curlCmd).then(() => {});
+      }
+      showError('response-' + stepId, new Error('CORS blocked the direct call. A curl command has been generated and copied to your clipboard. Run it in a terminal, then paste the JSON response below.'));
+    } else {
+      showError('response-' + stepId, e);
+    }
+  }
+  setLoading('btn-' + stepId, false);
+}
+
+function buildCurlCmd(params, tokenUrl, useMultipart) {
+  if (useMultipart) {
+    const flags = Object.entries(params).map(([k, v]) => `  -F "${k}=${v}"`).join(' \\\n');
+    return `curl -X POST "${tokenUrl}" \\\n  -H "Content-Type: multipart/form-data" \\\n${flags}`;
+  } else {
+    const body = Object.entries(params).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+    return `curl -X POST "${tokenUrl}" \\\n  -H "Content-Type: application/x-www-form-urlencoded" \\\n  -d "${body}"`;
+  }
+}
+
 // 04.01 Blueprint FIC token
 async function executeStep0401() {
-  setLoading('btn-0401', true);
+  const bpAppId = cfg('blueprintAppId');
+  const bpSecret = cfg('blueprintSecret');
+  if (!bpAppId || !bpSecret) { showToast('❌ Blueprint AppId and Secret required (steps 01.01–01.03).'); return; }
+  const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+  const params = {
+    client_id: bpAppId, client_secret: bpSecret,
+    scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
+    fmi_path: cfg('agentIdentityId')
+  };
+  await ficTokenRequest('0401', params, tokenUrl, true, 'blueprintFicToken', '✅ Blueprint FIC token obtained!');
+}
+
+function parseStep0401() {
   try {
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const body = new URLSearchParams({
-      scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
-      fmi_path: cfg('agentIdentityId')
-    });
-    const basicAuth = btoa(`${cfg('blueprintAppId')}:${cfg('blueprintSecret')}`);
-    const resp = await fetch(tokenUrl, {
-      method: 'POST', body, headers: { 'Authorization': `Basic ${basicAuth}` }
-    });
-    const data = await resp.json();
-    showResponse('response-0401', resp.status, data);
-    if (resp.ok) {
-      state.blueprintFicToken = data.access_token;
-      markCompleted('0401'); showToast('✅ Blueprint FIC token obtained!');
-    }
+    const raw = document.getElementById('paste-0401').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in the response.');
+    state.blueprintFicToken = data.access_token;
+    showResponse('response-0401', 200, data);
+    markCompleted('0401'); showToast('✅ Blueprint FIC token stored!');
   } catch (e) { showError('response-0401', e); }
-  setLoading('btn-0401', false);
 }
 
 // 04.02 Agent Identity FIC token
 async function executeStep0402() {
-  setLoading('btn-0402', true);
-  try {
-    if (!state.blueprintFicToken) throw new Error('Execute step 04.01 first.');
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const body = new URLSearchParams({
-      client_id: cfg('agentIdentityId'), scope: 'api://AzureADTokenExchange/.default',
-      grant_type: 'client_credentials',
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-      client_assertion: state.blueprintFicToken
-    });
-    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-    const data = await resp.json();
-    showResponse('response-0402', resp.status, data);
-    if (resp.ok) {
-      state.agentIdentityFicToken = data.access_token;
-      markCompleted('0402'); showToast('✅ Agent Identity FIC token obtained!');
-    }
-  } catch (e) { showError('response-0402', e); }
-  setLoading('btn-0402', false);
+  if (!state.blueprintFicToken) { showToast('❌ Execute step 04.01 first.'); return; }
+  const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+  const params = {
+    client_id: cfg('agentIdentityId'), scope: 'api://AzureADTokenExchange/.default',
+    grant_type: 'client_credentials',
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_assertion: state.blueprintFicToken
+  };
+  await ficTokenRequest('0402', params, tokenUrl, false, 'agentIdentityFicToken', '✅ Agent Identity FIC token obtained!');
 }
 
-// 04.03 Agent User token
-async function executeStep0403() {
-  setLoading('btn-0403', true);
+function parseStep0402() {
   try {
-    if (!state.blueprintFicToken || !state.agentIdentityFicToken) throw new Error('Execute steps 04.01 and 04.02 first.');
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const body = new URLSearchParams({
-      client_id: cfg('agentIdentityId'),
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-      client_assertion: state.blueprintFicToken,
-      grant_type: 'user_fic', requested_token_use: 'on_behalf_of',
-      scope: 'https://graph.microsoft.com/.default',
-      username: cfg('agentUserUpn'),
-      user_federated_identity_credential: state.agentIdentityFicToken
-    });
-    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-    const data = await resp.json();
-    showResponse('response-0403', resp.status, data);
-    if (resp.ok) {
-      state.agentUserToken = data.access_token;
-      markCompleted('0403'); showToast('✅ Agent User token obtained! You can now call Graph as the Digital Colleague.');
-    }
+    const raw = document.getElementById('paste-0402').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in the response.');
+    state.agentIdentityFicToken = data.access_token;
+    showResponse('response-0402', 200, data);
+    markCompleted('0402'); showToast('✅ Agent Identity FIC token stored!');
+  } catch (e) { showError('response-0402', e); }
+}
+
+// 04.03 Agent User token (Digital Colleague)
+async function executeStep0403() {
+  if (!state.blueprintFicToken || !state.agentIdentityFicToken) { showToast('❌ Execute steps 04.01 and 04.02 first.'); return; }
+  const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+  const params = {
+    client_id: cfg('agentIdentityId'),
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_assertion: state.blueprintFicToken,
+    grant_type: 'user_fic', requested_token_use: 'on_behalf_of',
+    scope: 'https://graph.microsoft.com/.default',
+    username: cfg('agentUserUpn'),
+    user_federated_identity_credential: state.agentIdentityFicToken
+  };
+  await ficTokenRequest('0403', params, tokenUrl, true, 'agentUserToken', '✅ Agent User token obtained! You can now call Graph as the Digital Colleague.');
+}
+
+function parseStep0403() {
+  try {
+    const raw = document.getElementById('paste-0403').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in the response.');
+    state.agentUserToken = data.access_token;
+    showResponse('response-0403', 200, data);
+    markCompleted('0403'); showToast('✅ Agent User token obtained! You can now call Graph as the Digital Colleague.');
   } catch (e) { showError('response-0403', e); }
-  setLoading('btn-0403', false);
 }
 
 // 04.04 Test /me
@@ -2295,50 +2435,57 @@ async function executeStep0405() {
   setLoading('btn-0405', false);
 }
 
-// 05.01 Blueprint FIC token (autonomous)
+// 05.01 Blueprint FIC token (Autonomous — same as 04.01)
 async function executeStep0501() {
-  setLoading('btn-0501', true);
-  try {
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const body = new URLSearchParams({
-      scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
-      fmi_path: cfg('agentIdentityId')
-    });
-    const basicAuth = btoa(`${cfg('blueprintAppId')}:${cfg('blueprintSecret')}`);
-    const resp = await fetch(tokenUrl, {
-      method: 'POST', body, headers: { 'Authorization': `Basic ${basicAuth}` }
-    });
-    const data = await resp.json();
-    showResponse('response-0501', resp.status, data);
-    if (resp.ok) {
-      state.autonomousFicToken = data.access_token;
-      markCompleted('0501'); showToast('✅ Autonomous FIC token obtained!');
-    }
-  } catch (e) { showError('response-0501', e); }
-  setLoading('btn-0501', false);
+  const bpAppId = cfg('blueprintAppId');
+  const bpSecret = cfg('blueprintSecret');
+  if (!bpAppId || !bpSecret) { showToast('❌ Blueprint AppId and Secret required (steps 01.01–01.03).'); return; }
+  const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+  const params = {
+    client_id: bpAppId, client_secret: bpSecret,
+    scope: 'api://AzureADTokenExchange/.default', grant_type: 'client_credentials',
+    fmi_path: cfg('agentIdentityId')
+  };
+  await ficTokenRequest('0501', params, tokenUrl, true, 'autonomousFicToken', '✅ Autonomous FIC token obtained!');
 }
 
-// 05.02 Agent Identity Graph token
-async function executeStep0502() {
-  setLoading('btn-0502', true);
+function parseStep0501() {
   try {
-    if (!state.autonomousFicToken) throw new Error('Execute step 05.01 first.');
-    const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
-    const body = new URLSearchParams({
-      client_id: cfg('agentIdentityId'), scope: 'https://graph.microsoft.com/.default',
-      grant_type: 'client_credentials',
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-      client_assertion: state.autonomousFicToken
-    });
-    const resp = await fetch(tokenUrl, { method: 'POST', body, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-    const data = await resp.json();
-    showResponse('response-0502', resp.status, data);
-    if (resp.ok) {
-      state.autonomousGraphToken = data.access_token;
-      markCompleted('0502'); showToast('✅ Autonomous Agent Graph token obtained!');
-    }
+    const raw = document.getElementById('paste-0501').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in the response.');
+    state.autonomousFicToken = data.access_token;
+    showResponse('response-0501', 200, data);
+    markCompleted('0501'); showToast('✅ Autonomous FIC token stored!');
+  } catch (e) { showError('response-0501', e); }
+}
+
+// 05.02 Agent Identity Graph token (Autonomous)
+async function executeStep0502() {
+  if (!state.autonomousFicToken) { showToast('❌ Execute step 05.01 first.'); return; }
+  const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
+  const params = {
+    client_id: cfg('agentIdentityId'), scope: 'https://graph.microsoft.com/.default',
+    grant_type: 'client_credentials',
+    client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+    client_assertion: state.autonomousFicToken
+  };
+  await ficTokenRequest('0502', params, tokenUrl, false, 'autonomousGraphToken', '✅ Autonomous Agent Graph token obtained!');
+}
+
+function parseStep0502() {
+  try {
+    const raw = document.getElementById('paste-0502').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in the response.');
+    state.autonomousGraphToken = data.access_token;
+    showResponse('response-0502', 200, data);
+    markCompleted('0502'); showToast('✅ Autonomous Agent Graph token obtained!');
   } catch (e) { showError('response-0502', e); }
-  setLoading('btn-0502', false);
 }
 
 // 06.01 Open auth code URL
@@ -2348,21 +2495,32 @@ function executeStep0601() {
   if (!aiClientId || !bpAppId) {
     showToast('❌ Configure AI App Client ID and complete step 01 first.', 4000); return;
   }
-  const url = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/authorize?client_id=${aiClientId}&response_type=code&redirect_uri=${encodeURIComponent('https://jwt.ms')}&scope=${encodeURIComponent(`api://${bpAppId}/access_agent offline_access`)}&state=rnd-${Date.now()}&response_mode=query`;
-  window.open(url, '_blank');
-  markCompleted('0601');
+  // Generate PKCE code_verifier and code_challenge
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const codeVerifier = btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  state.pkceCodeVerifier = codeVerifier;
+  crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier)).then(hash => {
+    const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const url = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/authorize?client_id=${aiClientId}&response_type=code&redirect_uri=${encodeURIComponent('https://jwt.ms')}&scope=${encodeURIComponent(`api://${bpAppId}/access_agent offline_access`)}&state=rnd-${Date.now()}&response_mode=query&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+    window.open(url, '_blank');
+    markCompleted('0601');
+    showToast('📋 PKCE code_verifier saved. After you get the auth code, paste it and redeem.');
+  });
 }
 
 async function redeemAuthCode() {
   const code = el('input-authCode').value;
   if (!code) { showToast('❌ Paste the authorization code first.'); return; }
+  if (!state.pkceCodeVerifier) { showToast('❌ Run step 06.01 first to generate the PKCE verifier.'); return; }
   try {
     const tokenUrl = `https://login.microsoftonline.com/${cfg('tenantId')}/oauth2/v2.0/token`;
     const body = new URLSearchParams({
-      client_id: cfg('aiClientId'), client_secret: cfg('aiClientSecret'),
+      client_id: cfg('aiClientId'),
       grant_type: 'authorization_code', code,
       redirect_uri: 'https://jwt.ms',
-      scope: `api://${cfg('blueprintAppId')}/access_agent offline_access`
+      scope: `api://${cfg('blueprintAppId')}/access_agent offline_access`,
+      code_verifier: state.pkceCodeVerifier
     });
     const resp = await fetch(tokenUrl, { method: 'POST', body });
     const data = await resp.json();
