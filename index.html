@@ -1744,6 +1744,7 @@ code_challenge_method = S256</div>
               <div class="api-panel-header">
                 <span class="method-badge POST" style="background:#333">SHELL</span>
                 <span class="api-url">Terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyDeployCommands()">📋 Copy</button>
               </div>
               <div class="api-body"><span style="color:#569cd6"># Start the agent + sidecar</span>
 docker compose up -d
@@ -3056,6 +3057,11 @@ function downloadCompose() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('⬇️ docker-compose.yml downloaded!');
+}
+
+function copyDeployCommands() {
+  const el = document.querySelector('#step-0702 .api-body');
+  navigator.clipboard.writeText(el.textContent).then(() => showToast('📋 Deploy commands copied!'));
 }
 
 // 07.03 Generate sidecar token request command
