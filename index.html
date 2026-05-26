@@ -1539,7 +1539,7 @@ code_challenge_method = S256</div>
         <div class="card-body collapsed">
           <p class="explanation">
             The <strong>Microsoft Entra Auth SDK (sidecar)</strong> pattern runs a companion container alongside your third-party agent.
-            The agent calls the sidecar at <code>localhost:7000/token</code> to request tokens — it <strong>never handles credentials directly</strong>.
+            The agent calls the sidecar at <code>localhost:5000</code> to request tokens — it <strong>never handles credentials directly</strong>.
             The sidecar communicates with Microsoft Entra Agent ID to acquire access tokens on behalf of the agent.
           </p>
 
@@ -1569,7 +1569,7 @@ code_challenge_method = S256</div>
 
               <!-- Agent → Sidecar arrow -->
               <line x1="162" y1="73" x2="178" y2="73" stroke="#8e44ad" stroke-width="2" marker-end="url(#ah-purple)"/>
-              <text x="170" y="65" text-anchor="middle" font-size="7" fill="#8e44ad">:7000</text>
+              <text x="170" y="65" text-anchor="middle" font-size="7" fill="#8e44ad">:5000</text>
 
               <!-- Entra Agent ID cloud -->
               <rect x="400" y="35" width="140" height="56" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="2"/>
@@ -1695,7 +1695,7 @@ code_challenge_method = S256</div>
           <p class="explanation">
             Deploy the sidecar alongside your agent using <strong>Docker Compose</strong>. The sidecar container
             (<code>entra-auth-sidecar</code>) runs on port <code>7000</code> and handles all token acquisition.
-            Your agent simply calls <code>http://sidecar:7000/token</code> to get access tokens.
+            Your agent simply calls <code>http://sidecar:5000/AuthorizationHeader</code> to get access tokens.
           </p>
 
           <div class="info-box info">
@@ -1755,7 +1755,7 @@ docker compose ps
 docker compose logs sidecar
 
 <span style="color:#569cd6"># Test the sidecar health endpoint</span>
-curl http://localhost:7000/health</div>
+curl http://localhost:5000/health</div>
             </div>
           </div>
 
@@ -1790,7 +1790,7 @@ curl http://localhost:7000/health</div>
           <h4 style="font-size:13px; margin-bottom:8px;">Token Request Flow</h4>
           <div style="display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:13px; margin:12px 0; align-items:start;">
             <span style="background:#e8daef; color:#6c3483; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">1</span>
-            <span>Agent sends a POST to <code>http://sidecar:7000/token</code> with the desired <strong>scope</strong> (e.g. <code>https://graph.microsoft.com/.default</code>).</span>
+            <span>Agent sends a GET to <code>http://sidecar:5000/AuthorizationHeader?DownstreamApi=graph-app</code> with the desired <strong>downstream API name</strong> configured in the sidecar.</span>
             <span style="background:#deecf9; color:#0078d4; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">2</span>
             <span>Sidecar authenticates with Entra Agent ID using the Blueprint's client credentials + Agent Identity FIC.</span>
             <span style="background:#dff6dd; color:#107c10; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">3</span>
@@ -1799,9 +1799,9 @@ curl http://localhost:7000/health</div>
 
           <div class="form-grid" style="margin-top:16px">
             <div class="form-group full">
-              <label>Target Scope</label>
-              <input type="text" id="sc-scope" value="https://graph.microsoft.com/.default" placeholder="https://graph.microsoft.com/.default">
-              <span class="hint">The resource scope the agent needs. Common: <code>https://graph.microsoft.com/.default</code></span>
+              <label>Downstream API Name</label>
+              <input type="text" id="sc-downstreamApi" value="graph-app" placeholder="graph-app">
+              <span class="hint">The downstream API name configured in the sidecar environment (e.g. <code>graph-app</code> for autonomous, <code>graph</code> for OBO).</span>
             </div>
           </div>
 
@@ -1812,8 +1812,8 @@ curl http://localhost:7000/health</div>
           <div id="cmd-0703" style="display:none; margin-top:16px">
             <div class="api-panel">
               <div class="api-panel-header">
-                <span class="method-badge POST">POST</span>
-                <span class="api-url">http://sidecar:7000/token</span>
+                <span class="method-badge GET">GET</span>
+                <span class="api-url">http://sidecar:5000/AuthorizationHeader?DownstreamApi=graph-app</span>
                 <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copySidecarCmd()">📋 Copy</button>
               </div>
               <div class="api-body" id="cmd-text-0703"></div>
@@ -1825,8 +1825,8 @@ curl http://localhost:7000/health</div>
             </div>
 
             <div class="form-group full" style="margin-top:8px">
-              <label>Paste Token Response JSON</label>
-              <textarea id="paste-0703" rows="6" placeholder='{"access_token":"eyJ0eX...","token_type":"Bearer","expires_in":3600}' style="font-family:var(--mono); font-size:12px;"></textarea>
+              <label>Paste Authorization Header Response</label>
+              <textarea id="paste-0703" rows="4" placeholder='Bearer eyJ0eXAiOiJKV1Qi...' style="font-family:var(--mono); font-size:12px;"></textarea>
             </div>
             <div class="btn-group">
               <button class="btn btn-secondary" onclick="parseStep0703()">🔍 Parse & Verify Token</button>
@@ -1850,17 +1850,18 @@ curl http://localhost:7000/health</div>
                 </div>
                 <div class="api-body"><span style="color:#c586c0">import</span> <span style="color:#4ec9b0">requests</span>
 
-<span style="color:#569cd6">SIDECAR_URL</span> = <span style="color:#ce9178">"http://sidecar:7000/token"</span>
+<span style="color:#569cd6">SIDECAR_URL</span> = <span style="color:#ce9178">"http://sidecar:5000"</span>
 
 <span style="color:#c586c0">def</span> <span style="color:#dcdcaa">get_graph_token</span>():
-    resp = requests.post(SIDECAR_URL, json={
-        <span style="color:#ce9178">"scope"</span>: <span style="color:#ce9178">"https://graph.microsoft.com/.default"</span>
-    })
+    resp = requests.get(
+        <span style="color:#ce9178">f"{SIDECAR_URL}/AuthorizationHeader"</span>,
+        params={<span style="color:#ce9178">"DownstreamApi"</span>: <span style="color:#ce9178">"graph-app"</span>}
+    )
     resp.raise_for_status()
-    <span style="color:#c586c0">return</span> resp.json()[<span style="color:#ce9178">"access_token"</span>]
+    <span style="color:#c586c0">return</span> resp.text  <span style="color:#6a9955"># Returns "Bearer eyJ0eX..."</span>
 
-<span style="color:#569cd6">token</span> = get_graph_token()
-<span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: <span style="color:#ce9178">f"Bearer </span>{token}<span style="color:#ce9178">"</span>}
+<span style="color:#569cd6">auth_header</span> = get_graph_token()
+<span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: auth_header}
 me = requests.get(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, headers=headers)
 print(me.json())</div>
               </div>
@@ -1871,23 +1872,18 @@ print(me.json())</div>
                   <span class="method-badge POST" style="background:#f1e05a; color:#333">JS</span>
                   <span class="api-url">agent.js — Request token from sidecar</span>
                 </div>
-                <div class="api-body"><span style="color:#c586c0">const</span> SIDECAR_URL = <span style="color:#ce9178">"http://sidecar:7000/token"</span>;
+                <div class="api-body"><span style="color:#c586c0">const</span> SIDECAR_URL = <span style="color:#ce9178">"http://sidecar:5000"</span>;
 
-<span style="color:#c586c0">async function</span> <span style="color:#dcdcaa">getGraphToken</span>() {
-  <span style="color:#c586c0">const</span> resp = <span style="color:#c586c0">await</span> fetch(SIDECAR_URL, {
-    method: <span style="color:#ce9178">"POST"</span>,
-    headers: { <span style="color:#ce9178">"Content-Type"</span>: <span style="color:#ce9178">"application/json"</span> },
-    body: JSON.stringify({
-      scope: <span style="color:#ce9178">"https://graph.microsoft.com/.default"</span>
-    })
-  });
-  <span style="color:#c586c0">const</span> data = <span style="color:#c586c0">await</span> resp.json();
-  <span style="color:#c586c0">return</span> data.access_token;
+<span style="color:#c586c0">async function</span> <span style="color:#dcdcaa">getGraphAuthHeader</span>() {
+  <span style="color:#c586c0">const</span> resp = <span style="color:#c586c0">await</span> fetch(
+    <span style="color:#ce9178">`${SIDECAR_URL}/AuthorizationHeader?DownstreamApi=graph-app`</span>
+  );
+  <span style="color:#c586c0">return</span> <span style="color:#c586c0">await</span> resp.text();  <span style="color:#6a9955">// "Bearer eyJ0eX..."</span>
 }
 
-<span style="color:#c586c0">const</span> token = <span style="color:#c586c0">await</span> getGraphToken();
+<span style="color:#c586c0">const</span> authHeader = <span style="color:#c586c0">await</span> getGraphAuthHeader();
 <span style="color:#c586c0">const</span> me = <span style="color:#c586c0">await</span> fetch(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, {
-  headers: { Authorization: <span style="color:#ce9178">`Bearer ${token}`</span> }
+  headers: { Authorization: authHeader }
 }).then(r => r.json());
 console.log(me);</div>
               </div>
@@ -1898,17 +1894,13 @@ console.log(me);</div>
                   <span class="method-badge POST" style="background:#333">CURL</span>
                   <span class="api-url">Terminal — Request token from sidecar</span>
                 </div>
-                <div class="api-body"><span style="color:#569cd6"># Request a token from the sidecar</span>
-curl -X POST http://localhost:7000/token \
-  -H "Content-Type: application/json" \
-  -d '{"scope": "https://graph.microsoft.com/.default"}'
+                <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
+curl http://localhost:5000/AuthorizationHeader?DownstreamApi=graph-app
 
-<span style="color:#569cd6"># Use the token to call MS Graph</span>
-TOKEN=$(curl -s -X POST http://localhost:7000/token \
-  -H "Content-Type: application/json" \
-  -d '{"scope": "https://graph.microsoft.com/.default"}' | jq -r '.access_token')
+<span style="color:#569cd6"># Use the header to call MS Graph</span>
+AUTH=$(curl -s "http://localhost:5000/AuthorizationHeader?DownstreamApi=graph-app")
 
-curl -H "Authorization: Bearer $TOKEN" \
+curl -H "Authorization: $AUTH" \
   https://graph.microsoft.com/v1.0/me</div>
               </div>
             </div>
@@ -2941,28 +2933,37 @@ function executeStep0702() {
     image: alpine/curl:latest
     command: ["sleep", "infinity"]
     environment:
-      - SIDECAR_URL=http://sidecar:7000
+      - SIDECAR_URL=http://sidecar:5000
     depends_on:
-      sidecar:
-        condition: service_healthy
+      - sidecar
     networks:
       - agent-net
 
   # Microsoft Entra Auth SDK sidecar
+  # Based on: https://github.com/microsoft/entra-agentid-samples
   sidecar:
     image: mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0-azurelinux3.0-distroless
     ports:
-      - "7000:7000"
+      - "5000:5000"
     environment:
-      - AZURE_TENANT_ID=${tenantId}
-      - AZURE_CLIENT_ID=${bpAppId}
-      - AZURE_CLIENT_SECRET=${bpSecret}
-      - AGENT_IDENTITY_CLIENT_ID=${agentId}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      # Microsoft Entra ID Configuration (Blueprint App)
+      - AzureAd__Instance=https://login.microsoftonline.com/
+      - AzureAd__TenantId=${tenantId}
+      - AzureAd__ClientId=${bpAppId}
+
+      # Client Secret Credential
+      - AzureAd__ClientCredentials__0__SourceType=ClientSecret
+      - AzureAd__ClientCredentials__0__ClientSecret=${bpSecret}
+
+      # Downstream API: MS Graph (autonomous / app-only)
+      - DownstreamApis__graph-app__BaseUrl=https://graph.microsoft.com/v1.0/
+      - DownstreamApis__graph-app__Scopes__0=https://graph.microsoft.com/.default
+      - DownstreamApis__graph-app__RequestAppToken=true
+
+      # ASP.NET Core settings
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - AllowedHosts=*
     networks:
       - agent-net
 
@@ -2997,10 +2998,8 @@ function downloadCompose() {
 
 // 07.03 Generate sidecar token request command
 function executeStep0703() {
-  const scope = el('sc-scope').value.trim() || 'https://graph.microsoft.com/.default';
-  const cmd = `curl -X POST http://localhost:7000/token \\
-  -H "Content-Type: application/json" \\
-  -d '{"scope": "${scope}"}'`;
+  const downstreamApi = el('sc-downstreamApi').value.trim() || 'graph-app';
+  const cmd = `curl "http://localhost:5000/AuthorizationHeader?DownstreamApi=${downstreamApi}"`;
 
   document.getElementById('cmd-text-0703').textContent = cmd;
   document.getElementById('cmd-0703').style.display = 'block';
@@ -3015,14 +3014,13 @@ function copySidecarCmd() {
 function parseStep0703() {
   try {
     const raw = document.getElementById('paste-0703').value.trim();
-    if (!raw) throw new Error('Paste the JSON response first.');
-    const data = JSON.parse(extractJson(raw));
-    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
-    if (!data.access_token) throw new Error('No access_token found in response.');
-    state.sidecarToken = data.access_token;
-    showResponse('response-0703', 200, data);
+    if (!raw) throw new Error('Paste the response first.');
+    const token = raw.startsWith('Bearer ') ? raw.substring(7) : raw;
+    if (!token || token.length < 10) throw new Error('Invalid authorization header.');
+    state.sidecarToken = token;
+    showResponse('response-0703', 200, { authorization_header: raw, token_length: token.length, note: 'Token verified — ready to call APIs' });
     markCompleted('0703');
-    showToast('✅ Sidecar token verified!');
+    showToast('✅ Sidecar authorization header verified!');
   } catch (e) { showError('response-0703', e); }
 }
 
