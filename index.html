@@ -1890,10 +1890,13 @@ downloads-sidecar-1     mcr.microsoft.com/entra-sdk/auth-sidecar   Up</span></di
 <span style="color:#569cd6">$authHeader</span> = <span style="color:#569cd6">$response</span>.authorizationHeader
 Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#569cd6">$authHeader</span>.Substring(0, 40)<span style="color:#ce9178">"..."</span>
 
-<span style="color:#569cd6"># Use the header to call MS Graph (app-only: use /organization, not /me)</span>
-<span style="color:#569cd6">$org</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span> `
-    -Headers @{ Authorization = <span style="color:#569cd6">$authHeader</span> }
-<span style="color:#569cd6">$org</span>.value | Select-Object displayName, id | ConvertTo-Json</div>
+<span style="color:#569cd6"># Decode the JWT to inspect its claims (no Graph permissions needed)</span>
+<span style="color:#569cd6">$jwt</span> = <span style="color:#569cd6">$authHeader</span> -replace <span style="color:#ce9178">"^Bearer "</span>, <span style="color:#ce9178">""</span>
+<span style="color:#569cd6">$parts</span> = <span style="color:#569cd6">$jwt</span>.Split(<span style="color:#ce9178">"."</span>)
+<span style="color:#569cd6">$payload</span> = <span style="color:#569cd6">$parts</span>[1].Replace(<span style="color:#ce9178">"-"</span>,<span style="color:#ce9178">"+"</span>).Replace(<span style="color:#ce9178">"_"</span>,<span style="color:#ce9178">"/"</span>)
+<span style="color:#c586c0">while</span> (<span style="color:#569cd6">$payload</span>.Length % 4) { <span style="color:#569cd6">$payload</span> += <span style="color:#ce9178">"="</span> }
+[System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(<span style="color:#569cd6">$payload</span>)) |
+    ConvertFrom-Json | ConvertTo-Json -Depth 3</div>
               </div>
             </div>
             <div class="tab-content" id="tab-python">
@@ -1914,10 +1917,12 @@ Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#5
     <span style="color:#c586c0">return</span> resp.json()[<span style="color:#ce9178">"authorizationHeader"</span>]
 
 <span style="color:#569cd6">auth_header</span> = get_graph_token()
-<span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: auth_header}
-<span style="color:#6a9955"># App-only tokens: use /organization (not /me)</span>
-org = requests.get(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span>, headers=headers)
-print(org.json())</div>
+<span style="color:#569cd6">auth_header</span> = get_graph_token()
+<span style="color:#6a9955"># Decode the JWT to inspect its claims</span>
+<span style="color:#c586c0">import</span> <span style="color:#4ec9b0">base64</span>, <span style="color:#4ec9b0">json</span>
+payload = auth_header.split(<span style="color:#ce9178">"."</span>)[1] + <span style="color:#ce9178">"=="</span>
+claims = json.loads(base64.urlsafe_b64decode(payload))
+print(json.dumps(claims, indent=2))</div>
               </div>
             </div>
             <div class="tab-content" id="tab-node">
@@ -1937,11 +1942,10 @@ print(org.json())</div>
 }
 
 <span style="color:#c586c0">const</span> authHeader = <span style="color:#c586c0">await</span> getGraphAuthHeader();
-<span style="color:#6a9955">// App-only tokens: use /organization (not /me)</span>
-<span style="color:#c586c0">const</span> org = <span style="color:#c586c0">await</span> fetch(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span>, {
-  headers: { Authorization: authHeader }
-}).then(r => r.json());
-console.log(org);</div>
+<span style="color:#6a9955">// Decode the JWT to inspect its claims</span>
+<span style="color:#c586c0">const</span> payload = authHeader.split(<span style="color:#ce9178">"."</span>)[1];
+<span style="color:#c586c0">const</span> claims = JSON.parse(atob(payload.replace(/-/g,<span style="color:#ce9178">"+"</span>).replace(/_/g,<span style="color:#ce9178">"/"</span>)));
+console.log(claims);</div>
               </div>
             </div>
             <div class="tab-content" id="tab-curl">
@@ -1953,11 +1957,9 @@ console.log(org);</div>
                 <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
 curl http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app
 
-<span style="color:#569cd6"># Use the header to call MS Graph (app-only: use /organization, not /me)</span>
+<span style="color:#569cd6"># Decode the JWT payload to inspect claims</span>
 AUTH=$(curl -s "http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app" | jq -r '.authorizationHeader')
-
-curl -H "Authorization: $AUTH" \
-  https://graph.microsoft.com/v1.0/organization</div>
+echo $AUTH | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .</div>
               </div>
             </div>
           </div>
