@@ -315,6 +315,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       <div class="nav-item" onclick="scrollToSection('step-0601')" id="nav-0601">
         <span class="nav-dot"></span> 06.01 Auth Code Flow
       </div>
+
+      <div class="nav-section">07 — Third-Party Sidecar</div>
+      <div class="nav-item" onclick="scrollToSection('step-0701')" id="nav-0701">
+        <span class="nav-dot"></span> 07.01 Sidecar Architecture
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0702')" id="nav-0702">
+        <span class="nav-dot"></span> 07.02 Docker Compose Setup
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0703')" id="nav-0703">
+        <span class="nav-dot"></span> 07.03 Request Token via Sidecar
+      </div>
     </nav>
     <div class="sidebar-footer">
       Based on <a href="https://github.com/astaykov/entra-agent-id-preview-guide" target="_blank">astaykov/entra-agent-id-preview-guide</a>
@@ -504,19 +515,75 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
           <p class="explanation">
             <strong>Microsoft Entra Agent ID</strong> introduces a new identity model for AI agents. It allows organizations to create, manage, and govern AI agent identities with the same rigor applied to human identities. There are three key identity primitives:
           </p>
-          <div class="arch-diagram">
-            <h3 style="font-size:14px; margin-bottom:16px;">Identity Hierarchy</h3>
-            <div class="arch-boxes">
-              <div class="arch-box blueprint">📘 Agent Blueprint<br><span style="font-size:10px;font-weight:normal">(Application Registration)</span></div>
-              <span class="arch-arrow">→</span>
-              <div class="arch-box identity">🤖 Agent Identity<br><span style="font-size:10px;font-weight:normal">(Service Principal)</span></div>
-              <span class="arch-arrow">→</span>
-              <div class="arch-box user">👤 Agentic User<br><span style="font-size:10px;font-weight:normal">(Digital Colleague)</span></div>
-            </div>
-            <div class="arch-boxes" style="margin-top:8px">
-              <div class="arch-box app" style="width:170px; max-width:170px; flex:0 0 170px">💻 AI Application<br><span style="font-size:10px;font-weight:normal">(Your AI App)</span></div>
-            </div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:4px">↗ acts on-behalf-of user via Agent Blueprint scope</div>
+          <div class="arch-diagram" style="padding:28px 20px;">
+            <h3 style="font-size:14px; margin-bottom:20px;">Identity Hierarchy & Token Flow</h3>
+            <svg viewBox="0 0 700 260" style="width:100%; max-width:680px; height:auto; margin:0 auto; display:block;">
+              <!-- Boxes -->
+              <!-- AI Application (compact, left side) -->
+              <rect x="10" y="100" width="120" height="56" rx="6" fill="#fde7e9" stroke="#d13438" stroke-width="2"/>
+              <text x="70" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#d13438">💻 AI Application</text>
+              <text x="70" y="137" text-anchor="middle" font-size="9" fill="#d13438">(Your AI App)</text>
+
+              <!-- Agent Blueprint -->
+              <rect x="195" y="20" width="140" height="56" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="2"/>
+              <text x="265" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#0078d4">📘 Agent Blueprint</text>
+              <text x="265" y="57" text-anchor="middle" font-size="9" fill="#0078d4">(App Registration)</text>
+
+              <!-- Agent Identity -->
+              <rect x="400" y="20" width="140" height="56" rx="6" fill="#dff6dd" stroke="#107c10" stroke-width="2"/>
+              <text x="470" y="42" text-anchor="middle" font-size="11" font-weight="600" fill="#107c10">🤖 Agent Identity</text>
+              <text x="470" y="57" text-anchor="middle" font-size="9" fill="#107c10">(Service Principal)</text>
+
+              <!-- Agentic User -->
+              <rect x="400" y="140" width="140" height="56" rx="6" fill="#fff4ce" stroke="#ffb900" stroke-width="2"/>
+              <text x="470" y="162" text-anchor="middle" font-size="11" font-weight="600" fill="#8a6914">👤 Agentic User</text>
+              <text x="470" y="177" text-anchor="middle" font-size="9" fill="#8a6914">(Digital Colleague)</text>
+
+              <!-- MS Graph (target) -->
+              <rect x="580" y="100" width="110" height="56" rx="6" fill="#e8e8e8" stroke="#666" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <text x="635" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#444">☁️ MS Graph</text>
+              <text x="635" y="137" text-anchor="middle" font-size="9" fill="#666">(Resource API)</text>
+
+              <!-- Arrows -->
+              <!-- AI App → Blueprint (uses scope) -->
+              <defs>
+                <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#888"/></marker>
+                <marker id="ah-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#0078d4"/></marker>
+                <marker id="ah-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#107c10"/></marker>
+                <marker id="ah-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8a6914"/></marker>
+              </defs>
+
+              <!-- AI App → Blueprint -->
+              <line x1="130" y1="115" x2="193" y2="62" stroke="#888" stroke-width="1.5" marker-end="url(#ah)" stroke-dasharray="5,3"/>
+              <text x="145" y="80" font-size="8" fill="#888" transform="rotate(-25,145,80)">uses scope</text>
+
+              <!-- Blueprint → Identity (FIC) -->
+              <line x1="337" y1="48" x2="398" y2="48" stroke="#0078d4" stroke-width="2" marker-end="url(#ah-blue)"/>
+              <text x="367" y="40" text-anchor="middle" font-size="8" fill="#0078d4">FIC token</text>
+
+              <!-- Identity → Agentic User -->
+              <line x1="470" y1="78" x2="470" y2="138" stroke="#107c10" stroke-width="2" marker-end="url(#ah-green)"/>
+              <text x="488" y="112" font-size="8" fill="#107c10">FIC hop</text>
+
+              <!-- Agentic User → MS Graph -->
+              <line x1="542" y1="160" x2="578" y2="140" stroke="#8a6914" stroke-width="2" marker-end="url(#ah-orange)"/>
+              <text x="565" y="157" font-size="8" fill="#8a6914" text-anchor="middle">agent token</text>
+
+              <!-- Identity → MS Graph (autonomous) -->
+              <line x1="542" y1="55" x2="578" y2="115" stroke="#107c10" stroke-width="1.5" marker-end="url(#ah-green)" stroke-dasharray="5,3"/>
+              <text x="572" y="78" font-size="8" fill="#107c10" text-anchor="end">autonomous</text>
+
+              <!-- Legend -->
+              <rect x="10" y="210" width="680" height="40" rx="4" fill="none" stroke="#ddd" stroke-width="1"/>
+              <line x1="25" y1="230" x2="55" y2="230" stroke="#0078d4" stroke-width="2"/>
+              <text x="60" y="234" font-size="9" fill="#555">FIC token chain</text>
+              <line x1="155" y1="230" x2="185" y2="230" stroke="#888" stroke-width="1.5" stroke-dasharray="5,3"/>
+              <text x="190" y="234" font-size="9" fill="#555">App → Blueprint scope</text>
+              <line x1="325" y1="230" x2="355" y2="230" stroke="#107c10" stroke-width="1.5" stroke-dasharray="5,3"/>
+              <text x="360" y="234" font-size="9" fill="#555">Autonomous path</text>
+              <line x1="475" y1="230" x2="505" y2="230" stroke="#8a6914" stroke-width="2"/>
+              <text x="510" y="234" font-size="9" fill="#555">Agent user token</text>
+            </svg>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
@@ -535,6 +602,10 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
             <div class="info-box danger" style="flex-direction:column">
               <strong>🔴 On-Behalf-Of User</strong>
               <span>The AI agent acts <strong>on behalf of</strong> a human user, carrying the user's security context via OAuth 2.0 authorization code flow.</span>
+            </div>
+            <div class="info-box" style="flex-direction:column; background:#e8daef; border-left:3px solid #8e44ad;">
+              <strong>🟣 Third-Party Sidecar</strong>
+              <span>A containerized <strong>Auth SDK sidecar</strong> runs alongside third-party agents (AWS Bedrock, Ollama, n8n). The agent requests tokens from the sidecar, never handling credentials directly.</span>
             </div>
           </div>
 
@@ -556,10 +627,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
                     <td style="padding:8px; border-bottom:1px solid var(--border)">Agentic User</td>
                     <td style="padding:8px; border-bottom:1px solid var(--border)">FIC → FIC → user_fic</td>
                     <td style="padding:8px; border-bottom:1px solid var(--border)">04.01 → 04.02 → 04.03</td></tr>
-                <tr><td style="padding:8px;">On-Behalf-Of</td>
-                    <td style="padding:8px;">Human User via AI App</td>
-                    <td style="padding:8px;">Auth Code + PKCE</td>
-                    <td style="padding:8px;">06.01</td></tr>
+                <tr><td style="padding:8px; border-bottom:1px solid var(--border)">On-Behalf-Of</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Human User via AI App</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Auth Code + PKCE</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">06.01</td></tr>
+                <tr><td style="padding:8px;">Third-Party Sidecar</td>
+                    <td style="padding:8px;">Agent Identity via Sidecar</td>
+                    <td style="padding:8px;">Sidecar → Entra Agent ID → Token</td>
+                    <td style="padding:8px;">07.01 → 07.02 → 07.03</td></tr>
               </tbody>
             </table>
           </div>
@@ -1447,6 +1522,409 @@ code_challenge_method = S256</div>
             <h4>📚 Microsoft Documentation</h4>
             <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow" target="_blank">📄 Authorization Code Flow</a>
             <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow" target="_blank">📄 On-Behalf-Of Flow</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 07.01 ======================== -->
+    <section id="step-0701">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">07.01</span>
+          <h2>Sidecar Architecture Overview</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🐳 Container</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>Microsoft Entra Auth SDK (sidecar)</strong> pattern runs a companion container alongside your third-party agent.
+            The agent calls the sidecar at <code>localhost:7000/token</code> to request tokens — it <strong>never handles credentials directly</strong>.
+            The sidecar communicates with Microsoft Entra Agent ID to acquire access tokens on behalf of the agent.
+          </p>
+
+          <div class="arch-diagram" style="padding:28px 20px;">
+            <h3 style="font-size:14px; margin-bottom:20px;">Sidecar Pattern Architecture</h3>
+            <svg viewBox="0 0 700 220" style="width:100%; max-width:680px; height:auto; margin:0 auto; display:block;">
+              <defs>
+                <marker id="ah-sc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#888"/></marker>
+                <marker id="ah-purple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8e44ad"/></marker>
+                <marker id="ah-blue-sc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#0078d4"/></marker>
+                <marker id="ah-green-sc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#107c10"/></marker>
+              </defs>
+
+              <!-- Container boundary -->
+              <rect x="15" y="20" width="310" height="160" rx="10" fill="none" stroke="#8e44ad" stroke-width="2" stroke-dasharray="6,3"/>
+              <text x="170" y="14" text-anchor="middle" font-size="10" fill="#8e44ad" font-weight="600">Docker / Kubernetes Pod</text>
+
+              <!-- Agent container -->
+              <rect x="30" y="45" width="130" height="56" rx="6" fill="#fde7e9" stroke="#d13438" stroke-width="2"/>
+              <text x="95" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#d13438">🤖 Agent</text>
+              <text x="95" y="83" text-anchor="middle" font-size="9" fill="#d13438">(Bedrock / Ollama / n8n)</text>
+
+              <!-- Sidecar container -->
+              <rect x="180" y="45" width="130" height="56" rx="6" fill="#e8daef" stroke="#8e44ad" stroke-width="2"/>
+              <text x="245" y="68" text-anchor="middle" font-size="11" font-weight="600" fill="#6c3483">🔐 Auth Sidecar</text>
+              <text x="245" y="83" text-anchor="middle" font-size="9" fill="#6c3483">(Entra Auth SDK)</text>
+
+              <!-- Agent → Sidecar arrow -->
+              <line x1="162" y1="73" x2="178" y2="73" stroke="#8e44ad" stroke-width="2" marker-end="url(#ah-purple)"/>
+              <text x="170" y="65" text-anchor="middle" font-size="7" fill="#8e44ad">:7000</text>
+
+              <!-- Entra Agent ID cloud -->
+              <rect x="400" y="35" width="140" height="56" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="2"/>
+              <text x="470" y="57" text-anchor="middle" font-size="11" font-weight="600" fill="#0078d4">☁️ Entra Agent ID</text>
+              <text x="470" y="72" text-anchor="middle" font-size="9" fill="#0078d4">(Token Service)</text>
+
+              <!-- Sidecar → Entra arrow -->
+              <line x1="312" y1="63" x2="398" y2="63" stroke="#0078d4" stroke-width="2" marker-end="url(#ah-blue-sc)"/>
+              <text x="355" y="55" text-anchor="middle" font-size="8" fill="#0078d4">authenticate</text>
+
+              <!-- MS Graph / Your APIs -->
+              <rect x="400" y="125" width="140" height="56" rx="6" fill="#dff6dd" stroke="#107c10" stroke-width="2"/>
+              <text x="470" y="147" text-anchor="middle" font-size="11" font-weight="600" fill="#107c10">☁️ MS Graph</text>
+              <text x="470" y="162" text-anchor="middle" font-size="9" fill="#107c10">(Your APIs)</text>
+
+              <!-- Agent → API arrow (bottom path) -->
+              <path d="M 95 103 L 95 153 L 398 153" fill="none" stroke="#107c10" stroke-width="2" marker-end="url(#ah-green-sc)"/>
+              <text x="250" y="145" text-anchor="middle" font-size="8" fill="#107c10">call API with token</text>
+
+              <!-- Token return arrow (Entra → Sidecar) -->
+              <line x1="398" y1="78" x2="312" y2="78" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ah-blue-sc)"/>
+              <text x="355" y="90" text-anchor="middle" font-size="8" fill="#0078d4">access token</text>
+
+              <!-- Legend -->
+              <rect x="10" y="190" width="530" height="25" rx="4" fill="none" stroke="#ddd" stroke-width="1"/>
+              <line x1="25" y1="203" x2="55" y2="203" stroke="#8e44ad" stroke-width="2"/>
+              <text x="60" y="207" font-size="9" fill="#555">Agent → Sidecar (localhost)</text>
+              <line x1="210" y1="203" x2="240" y2="203" stroke="#0078d4" stroke-width="2"/>
+              <text x="245" y="207" font-size="9" fill="#555">Sidecar → Entra ID</text>
+              <line x1="370" y1="203" x2="400" y2="203" stroke="#107c10" stroke-width="2"/>
+              <text x="405" y="207" font-size="9" fill="#555">Agent → API (with token)</text>
+            </svg>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px;">
+            <div class="info-box info" style="flex-direction:column">
+              <strong>✅ Best For</strong>
+              <ul style="font-size:12px; margin:6px 0 0 16px; line-height:1.7">
+                <li>Containerized agents (Docker / Kubernetes)</li>
+                <li>AWS Bedrock agents in your own orchestration</li>
+                <li>Local dev with Docker Compose + Ollama</li>
+                <li>Organizations already using container infra</li>
+              </ul>
+            </div>
+            <div class="info-box success" style="flex-direction:column">
+              <strong>🔑 Key Advantages</strong>
+              <ul style="font-size:12px; margin:6px 0 0 16px; line-height:1.7">
+                <li>Credential-free agent code</li>
+                <li>Works with any containerized agent</li>
+                <li>Easy local dev with Docker Compose</li>
+                <li>Deploy to ACA, K8s, or on-prem</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="info-box warning" style="margin-top:12px">
+            <span class="icon">⚠️</span>
+            <div><strong>Prerequisite:</strong> Complete steps <strong>01 (Agent Blueprint)</strong> and <strong>02 (Agent Identity)</strong> first. The sidecar uses the Blueprint's client credentials to authenticate with Entra Agent ID on behalf of the Agent Identity.</div>
+          </div>
+
+          <div style="margin-top:16px; padding:16px; background:var(--surface-alt); border:1px solid var(--border); border-radius:8px;">
+            <h4 style="font-size:13px; margin-bottom:10px;">🛠️ Local Machine Prerequisites</h4>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div style="font-size:12px; display:flex; gap:8px; align-items:flex-start;">
+                <span style="font-size:16px">🐳</span>
+                <div>
+                  <strong>Docker Desktop</strong> (includes Docker Compose)<br>
+                  <a href="https://www.docker.com/products/docker-desktop/" target="_blank" style="color:var(--primary); text-decoration:none; font-size:11px">Download Docker Desktop →</a>
+                </div>
+              </div>
+              <div style="font-size:12px; display:flex; gap:8px; align-items:flex-start;">
+                <span style="font-size:16px">📦</span>
+                <div>
+                  <strong>curl</strong> (for testing token requests)<br>
+                  <span style="color:var(--text-muted); font-size:11px">Built into Windows 10+, macOS, and Linux</span>
+                </div>
+              </div>
+              <div style="font-size:12px; display:flex; gap:8px; align-items:flex-start;">
+                <span style="font-size:16px">🔑</span>
+                <div>
+                  <strong>Agent Blueprint credentials</strong><br>
+                  <span style="color:var(--text-muted); font-size:11px">Client ID + Secret from steps 01.01 &amp; 01.03</span>
+                </div>
+              </div>
+              <div style="font-size:12px; display:flex; gap:8px; align-items:flex-start;">
+                <span style="font-size:16px">🤖</span>
+                <div>
+                  <strong>Agent Identity</strong> created in step 02.01<br>
+                  <span style="color:var(--text-muted); font-size:11px">Client ID of the Agent Identity service principal</span>
+                </div>
+              </div>
+            </div>
+            <div class="info-box info" style="margin-top:12px; margin-bottom:0; font-size:12px;">
+              <span class="icon">💡</span>
+              <div>Verify Docker is installed: run <code>docker --version</code> and <code>docker compose version</code> in your terminal. Docker Desktop must be <strong>running</strong> (check the system tray icon).</div>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="markCompleted('0701'); showToast('✅ Architecture reviewed!')">✅ Mark as Reviewed</button>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/configure-third-party-agents" target="_blank">📄 Configure Third-Party Agents</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/microsoft-entra-sdk-for-agent-identities" target="_blank">📄 Entra Auth SDK for Agent Identities</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/sidecar-local-development" target="_blank">📄 Sidecar for Local Development</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 07.02 ======================== -->
+    <section id="step-0702">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">07.02</span>
+          <h2>Docker Compose Setup</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🐳 Container</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Deploy the sidecar alongside your agent using <strong>Docker Compose</strong>. The sidecar container
+            (<code>entra-auth-sidecar</code>) runs on port <code>7000</code> and handles all token acquisition.
+            Your agent simply calls <code>http://sidecar:7000/token</code> to get access tokens.
+          </p>
+
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>Fill in the values below using outputs from steps 01–02. Click <strong>Generate docker-compose.yml</strong> to produce the file with your configuration pre-filled.</div>
+          </div>
+
+          <div class="form-grid" style="margin-top:12px">
+            <div class="form-group">
+              <label>Blueprint Client ID</label>
+              <input type="text" id="sc-blueprintClientId" readonly placeholder="(from step 01.01)">
+            </div>
+            <div class="form-group">
+              <label>Blueprint Client Secret</label>
+              <input type="text" id="sc-blueprintSecret" readonly placeholder="(from step 01.03)">
+            </div>
+            <div class="form-group">
+              <label>Tenant ID</label>
+              <input type="text" id="sc-tenantId" readonly placeholder="(from sign-in)">
+            </div>
+            <div class="form-group">
+              <label>Agent Identity Client ID</label>
+              <input type="text" id="sc-agentIdentityId" readonly placeholder="(from step 02.01)">
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-0702" onclick="executeStep0702()">📄 Generate docker-compose.yml</button>
+          </div>
+
+          <div id="compose-output" style="display:none; margin-top:16px">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#8e44ad">YAML</span>
+                <span class="api-url">docker-compose.yml</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCompose()">📋 Copy</button>
+                <button class="btn btn-sm" style="background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="downloadCompose()">⬇️ Download</button>
+              </div>
+              <div class="api-body" id="compose-yaml" style="max-height:400px"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <h4 style="font-size:13px; margin-bottom:8px;">🚀 Deploy Commands</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#333">SHELL</span>
+                <span class="api-url">Terminal</span>
+              </div>
+              <div class="api-body"><span style="color:#569cd6"># Start the agent + sidecar</span>
+docker compose up -d
+
+<span style="color:#569cd6"># Check both containers are running</span>
+docker compose ps
+
+<span style="color:#569cd6"># View sidecar logs</span>
+docker compose logs sidecar
+
+<span style="color:#569cd6"># Test the sidecar health endpoint</span>
+curl http://localhost:7000/health</div>
+            </div>
+          </div>
+
+          <div class="response-panel" id="response-0702"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/sidecar-local-development" target="_blank">📄 Sidecar Local Development</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/integrate-aws-bedrock-agent" target="_blank">📄 Integrate AWS Bedrock Agent</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/integrate-n8n-agent" target="_blank">📄 Integrate n8n Agent</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 07.03 ======================== -->
+    <section id="step-0703">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">07.03</span>
+          <h2>Request Token via Sidecar</h2>
+          <span class="auth-label" style="background:#e8daef; color:#6c3483;">🐳 Container</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Once the sidecar is running, your agent requests tokens by calling the sidecar's <code>/token</code> endpoint.
+            The sidecar handles all credential management and returns a standard OAuth 2.0 access token.
+            This is how your third-party agent (AWS Bedrock, Ollama, n8n, etc.) gets tokens without ever seeing credentials.
+          </p>
+
+          <h4 style="font-size:13px; margin-bottom:8px;">Token Request Flow</h4>
+          <div style="display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:13px; margin:12px 0; align-items:start;">
+            <span style="background:#e8daef; color:#6c3483; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">1</span>
+            <span>Agent sends a POST to <code>http://sidecar:7000/token</code> with the desired <strong>scope</strong> (e.g. <code>https://graph.microsoft.com/.default</code>).</span>
+            <span style="background:#deecf9; color:#0078d4; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">2</span>
+            <span>Sidecar authenticates with Entra Agent ID using the Blueprint's client credentials + Agent Identity FIC.</span>
+            <span style="background:#dff6dd; color:#107c10; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">3</span>
+            <span>Sidecar returns the access token to the agent. The agent uses it to call Microsoft Graph or your custom APIs.</span>
+          </div>
+
+          <div class="form-grid" style="margin-top:16px">
+            <div class="form-group full">
+              <label>Target Scope</label>
+              <input type="text" id="sc-scope" value="https://graph.microsoft.com/.default" placeholder="https://graph.microsoft.com/.default">
+              <span class="hint">The resource scope the agent needs. Common: <code>https://graph.microsoft.com/.default</code></span>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-0703" onclick="executeStep0703()">📋 Generate Token Request Command</button>
+          </div>
+
+          <div id="cmd-0703" style="display:none; margin-top:16px">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">http://sidecar:7000/token</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copySidecarCmd()">📋 Copy</button>
+              </div>
+              <div class="api-body" id="cmd-text-0703"></div>
+            </div>
+
+            <div class="info-box warning" style="margin-top:12px">
+              <span class="icon">📋</span>
+              <div>Run the command above in your terminal (where the Docker Compose stack is running). Paste the JSON response below to verify the token.</div>
+            </div>
+
+            <div class="form-group full" style="margin-top:8px">
+              <label>Paste Token Response JSON</label>
+              <textarea id="paste-0703" rows="6" placeholder='{"access_token":"eyJ0eX...","token_type":"Bearer","expires_in":3600}' style="font-family:var(--mono); font-size:12px;"></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-secondary" onclick="parseStep0703()">🔍 Parse & Verify Token</button>
+            </div>
+          </div>
+
+          <div class="response-panel" id="response-0703"></div>
+
+          <div style="margin-top:16px">
+            <h4 style="font-size:13px; margin-bottom:8px;">🐍 Agent Integration Examples</h4>
+            <div class="tabs">
+              <div class="tab active" onclick="switchSidecarTab(this, 'tab-python')">Python</div>
+              <div class="tab" onclick="switchSidecarTab(this, 'tab-node')">Node.js</div>
+              <div class="tab" onclick="switchSidecarTab(this, 'tab-curl')">cURL</div>
+            </div>
+            <div class="tab-content active" id="tab-python">
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge POST" style="background:#3572a5">PY</span>
+                  <span class="api-url">agent.py — Request token from sidecar</span>
+                </div>
+                <div class="api-body"><span style="color:#c586c0">import</span> <span style="color:#4ec9b0">requests</span>
+
+<span style="color:#569cd6">SIDECAR_URL</span> = <span style="color:#ce9178">"http://sidecar:7000/token"</span>
+
+<span style="color:#c586c0">def</span> <span style="color:#dcdcaa">get_graph_token</span>():
+    resp = requests.post(SIDECAR_URL, json={
+        <span style="color:#ce9178">"scope"</span>: <span style="color:#ce9178">"https://graph.microsoft.com/.default"</span>
+    })
+    resp.raise_for_status()
+    <span style="color:#c586c0">return</span> resp.json()[<span style="color:#ce9178">"access_token"</span>]
+
+<span style="color:#569cd6">token</span> = get_graph_token()
+<span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: <span style="color:#ce9178">f"Bearer </span>{token}<span style="color:#ce9178">"</span>}
+me = requests.get(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, headers=headers)
+print(me.json())</div>
+              </div>
+            </div>
+            <div class="tab-content" id="tab-node">
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge POST" style="background:#f1e05a; color:#333">JS</span>
+                  <span class="api-url">agent.js — Request token from sidecar</span>
+                </div>
+                <div class="api-body"><span style="color:#c586c0">const</span> SIDECAR_URL = <span style="color:#ce9178">"http://sidecar:7000/token"</span>;
+
+<span style="color:#c586c0">async function</span> <span style="color:#dcdcaa">getGraphToken</span>() {
+  <span style="color:#c586c0">const</span> resp = <span style="color:#c586c0">await</span> fetch(SIDECAR_URL, {
+    method: <span style="color:#ce9178">"POST"</span>,
+    headers: { <span style="color:#ce9178">"Content-Type"</span>: <span style="color:#ce9178">"application/json"</span> },
+    body: JSON.stringify({
+      scope: <span style="color:#ce9178">"https://graph.microsoft.com/.default"</span>
+    })
+  });
+  <span style="color:#c586c0">const</span> data = <span style="color:#c586c0">await</span> resp.json();
+  <span style="color:#c586c0">return</span> data.access_token;
+}
+
+<span style="color:#c586c0">const</span> token = <span style="color:#c586c0">await</span> getGraphToken();
+<span style="color:#c586c0">const</span> me = <span style="color:#c586c0">await</span> fetch(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, {
+  headers: { Authorization: <span style="color:#ce9178">`Bearer ${token}`</span> }
+}).then(r => r.json());
+console.log(me);</div>
+              </div>
+            </div>
+            <div class="tab-content" id="tab-curl">
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge POST" style="background:#333">CURL</span>
+                  <span class="api-url">Terminal — Request token from sidecar</span>
+                </div>
+                <div class="api-body"><span style="color:#569cd6"># Request a token from the sidecar</span>
+curl -X POST http://localhost:7000/token \
+  -H "Content-Type: application/json" \
+  -d '{"scope": "https://graph.microsoft.com/.default"}'
+
+<span style="color:#569cd6"># Use the token to call MS Graph</span>
+TOKEN=$(curl -s -X POST http://localhost:7000/token \
+  -H "Content-Type: application/json" \
+  -d '{"scope": "https://graph.microsoft.com/.default"}' | jq -r '.access_token')
+
+curl -H "Authorization: Bearer $TOKEN" \
+  https://graph.microsoft.com/v1.0/me</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-box info" style="margin-top:16px">
+            <span class="icon">🔒</span>
+            <div><strong>Security note:</strong> The agent code <strong>never</strong> sees the Blueprint's client secret or any credentials. All authentication is handled by the sidecar container. In production, use <strong>Workload Identity Federation</strong> instead of client secrets for the sidecar itself.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/configure-third-party-agents" target="_blank">📄 Configure Third-Party Agents</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/call-api-microsoft-graph" target="_blank">📄 Call Microsoft Graph API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/call-api-custom" target="_blank">📄 Call Custom APIs</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/agent-id/best-practices-agent-id" target="_blank">📄 Best Practices for Agent ID</a>
           </div>
         </div>
       </div>
@@ -2441,6 +2919,119 @@ async function redeemAuthCode() {
     showResponse('response-0601', resp.status, data);
     if (resp.ok) showToast('✅ Authorization code redeemed!');
   } catch (e) { showError('response-0601', e); }
+}
+
+// 07.02 Generate Docker Compose
+function executeStep0702() {
+  const bpAppId = cfg('blueprintAppId') || '{{BLUEPRINT_CLIENT_ID}}';
+  const bpSecret = cfg('blueprintSecret') || '{{BLUEPRINT_CLIENT_SECRET}}';
+  const tenantId = cfg('tenantId') || '{{TENANT_ID}}';
+  const agentId = cfg('agentIdentityId') || '{{AGENT_IDENTITY_CLIENT_ID}}';
+
+  // Pre-fill the readonly fields
+  el('sc-blueprintClientId').value = bpAppId;
+  el('sc-blueprintSecret').value = bpSecret;
+  el('sc-tenantId').value = tenantId;
+  el('sc-agentIdentityId').value = agentId;
+
+  const yaml = `version: "3.8"
+
+services:
+  # Your AI agent (replace with your own image)
+  agent:
+    image: your-agent-image:latest
+    environment:
+      - SIDECAR_URL=http://sidecar:7000
+    depends_on:
+      sidecar:
+        condition: service_healthy
+    networks:
+      - agent-net
+
+  # Microsoft Entra Auth SDK sidecar
+  sidecar:
+    image: mcr.microsoft.com/entra/auth-sdk:latest
+    ports:
+      - "7000:7000"
+    environment:
+      - AZURE_TENANT_ID=${tenantId}
+      - AZURE_CLIENT_ID=${bpAppId}
+      - AZURE_CLIENT_SECRET=${bpSecret}
+      - AGENT_IDENTITY_CLIENT_ID=${agentId}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - agent-net
+
+networks:
+  agent-net:
+    driver: bridge`;
+
+  document.getElementById('compose-yaml').textContent = yaml;
+  document.getElementById('compose-output').style.display = 'block';
+  markCompleted('0702');
+  showToast('📄 docker-compose.yml generated!');
+}
+
+function copyCompose() {
+  const yaml = document.getElementById('compose-yaml').textContent;
+  navigator.clipboard.writeText(yaml).then(() => showToast('📋 docker-compose.yml copied!'));
+}
+
+function downloadCompose() {
+  const yaml = document.getElementById('compose-yaml').textContent;
+  const blob = new Blob([yaml], { type: 'application/x-yaml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'docker-compose.yml';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('⬇️ docker-compose.yml downloaded!');
+}
+
+// 07.03 Generate sidecar token request command
+function executeStep0703() {
+  const scope = el('sc-scope').value.trim() || 'https://graph.microsoft.com/.default';
+  const cmd = `curl -X POST http://localhost:7000/token \\
+  -H "Content-Type: application/json" \\
+  -d '{"scope": "${scope}"}'`;
+
+  document.getElementById('cmd-text-0703').textContent = cmd;
+  document.getElementById('cmd-0703').style.display = 'block';
+  navigator.clipboard.writeText(cmd).then(() => showToast('📋 Token request command copied!'));
+}
+
+function copySidecarCmd() {
+  const cmd = document.getElementById('cmd-text-0703').textContent;
+  navigator.clipboard.writeText(cmd).then(() => showToast('📋 Command copied!'));
+}
+
+function parseStep0703() {
+  try {
+    const raw = document.getElementById('paste-0703').value.trim();
+    if (!raw) throw new Error('Paste the JSON response first.');
+    const data = JSON.parse(extractJson(raw));
+    if (data.error) throw new Error(`${data.error}: ${data.error_description || ''}`);
+    if (!data.access_token) throw new Error('No access_token found in response.');
+    state.sidecarToken = data.access_token;
+    showResponse('response-0703', 200, data);
+    markCompleted('0703');
+    showToast('✅ Sidecar token verified!');
+  } catch (e) { showError('response-0703', e); }
+}
+
+function switchSidecarTab(tabEl, contentId) {
+  tabEl.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+  const parent = tabEl.closest('.card-body');
+  parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById(contentId).classList.add('active');
 }
 
 // ==================== INIT ====================
