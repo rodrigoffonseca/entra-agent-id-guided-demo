@@ -1874,11 +1874,29 @@ downloads-sidecar-1     mcr.microsoft.com/entra-sdk/auth-sidecar   Up</span></di
           <div style="margin-top:16px">
             <h4 style="font-size:13px; margin-bottom:8px;">🐍 Agent Integration Examples</h4>
             <div class="tabs">
-              <div class="tab active" onclick="switchSidecarTab(this, 'tab-python')">Python</div>
+              <div class="tab active" onclick="switchSidecarTab(this, 'tab-powershell')">PowerShell</div>
+              <div class="tab" onclick="switchSidecarTab(this, 'tab-python')">Python</div>
               <div class="tab" onclick="switchSidecarTab(this, 'tab-node')">Node.js</div>
               <div class="tab" onclick="switchSidecarTab(this, 'tab-curl')">cURL</div>
             </div>
-            <div class="tab-content active" id="tab-python">
+            <div class="tab-content active" id="tab-powershell">
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge POST" style="background:#012456">PS</span>
+                  <span class="api-url">PowerShell — Request token from sidecar</span>
+                </div>
+                <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
+<span style="color:#569cd6">$response</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app"</span>
+<span style="color:#569cd6">$authHeader</span> = <span style="color:#569cd6">$response</span>.authorizationHeader
+Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#569cd6">$authHeader</span>.Substring(0, 40)<span style="color:#ce9178">"..."</span>
+
+<span style="color:#569cd6"># Use the header to call MS Graph</span>
+<span style="color:#569cd6">$me</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span> `
+    -Headers @{ Authorization = <span style="color:#569cd6">$authHeader</span> }
+<span style="color:#569cd6">$me</span> | ConvertTo-Json -Depth 3</div>
+              </div>
+            </div>
+            <div class="tab-content" id="tab-python">
               <div class="api-panel">
                 <div class="api-panel-header">
                   <span class="method-badge POST" style="background:#3572a5">PY</span>
