@@ -1884,6 +1884,7 @@ downloads-sidecar-1     mcr.microsoft.com/entra-sdk/auth-sidecar   Up</span></di
                 <div class="api-panel-header">
                   <span class="method-badge POST" style="background:#012456">PS</span>
                   <span class="api-url">PowerShell — Request token from sidecar</span>
+                  <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCodeExample('tab-powershell')">📋 Copy</button>
                 </div>
                 <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
 <span style="color:#569cd6">$response</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app"</span>
@@ -1904,6 +1905,7 @@ Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#5
                 <div class="api-panel-header">
                   <span class="method-badge POST" style="background:#3572a5">PY</span>
                   <span class="api-url">agent.py — Request token from sidecar</span>
+                  <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCodeExample('tab-python')">📋 Copy</button>
                 </div>
                 <div class="api-body"><span style="color:#c586c0">import</span> <span style="color:#4ec9b0">requests</span>
 
@@ -1930,6 +1932,7 @@ print(json.dumps(claims, indent=2))</div>
                 <div class="api-panel-header">
                   <span class="method-badge POST" style="background:#f1e05a; color:#333">JS</span>
                   <span class="api-url">agent.js — Request token from sidecar</span>
+                  <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCodeExample('tab-node')">📋 Copy</button>
                 </div>
                 <div class="api-body"><span style="color:#c586c0">const</span> SIDECAR_URL = <span style="color:#ce9178">"http://sidecar:5000"</span>;
 
@@ -1953,6 +1956,7 @@ console.log(claims);</div>
                 <div class="api-panel-header">
                   <span class="method-badge POST" style="background:#333">CURL</span>
                   <span class="api-url">Terminal — Request token from sidecar</span>
+                  <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCodeExample('tab-curl')">📋 Copy</button>
                 </div>
                 <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
 curl http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app
@@ -3085,6 +3089,11 @@ function parseStep0703() {
     markCompleted('0703');
     showToast('✅ Sidecar authorization header verified!');
   } catch (e) { showError('response-0703', e); }
+}
+
+function copyCodeExample(tabId) {
+  const code = document.getElementById(tabId).querySelector('.api-body').textContent;
+  navigator.clipboard.writeText(code).then(() => showToast('📋 Code copied to clipboard!'));
 }
 
 function switchSidecarTab(tabEl, contentId) {
