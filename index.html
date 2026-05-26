@@ -1695,7 +1695,7 @@ code_challenge_method = S256</div>
           <p class="explanation">
             Deploy the sidecar alongside your agent using <strong>Docker Compose</strong>. The sidecar container
             (<code>entra-auth-sidecar</code>) runs on port <code>7000</code> and handles all token acquisition.
-            Your agent simply calls <code>http://sidecar:5000/AuthorizationHeader</code> to get access tokens.
+            Your agent simply calls <code>http://sidecar:5000/AuthorizationHeaderUnauthenticated/graph-app</code> to get access tokens.
           </p>
 
           <div class="info-box info">
@@ -1755,7 +1755,7 @@ docker compose ps
 docker compose logs sidecar
 
 <span style="color:#569cd6"># Test the sidecar health endpoint</span>
-curl http://localhost:5000/health</div>
+curl http://localhost:5000/healthz</div>
             </div>
           </div>
 
@@ -1790,7 +1790,7 @@ curl http://localhost:5000/health</div>
           <h4 style="font-size:13px; margin-bottom:8px;">Token Request Flow</h4>
           <div style="display:grid; grid-template-columns:auto 1fr; gap:8px 16px; font-size:13px; margin:12px 0; align-items:start;">
             <span style="background:#e8daef; color:#6c3483; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">1</span>
-            <span>Agent sends a GET to <code>http://sidecar:5000/AuthorizationHeader?DownstreamApi=graph-app</code> with the desired <strong>downstream API name</strong> configured in the sidecar.</span>
+            <span>Agent sends a GET to <code>http://sidecar:5000/AuthorizationHeaderUnauthenticated/graph-app</code> — the downstream API name is a <strong>path segment</strong>, not a query parameter.</span>
             <span style="background:#deecf9; color:#0078d4; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">2</span>
             <span>Sidecar authenticates with Entra Agent ID using the Blueprint's client credentials + Agent Identity FIC.</span>
             <span style="background:#dff6dd; color:#107c10; padding:2px 8px; border-radius:3px; font-weight:600; font-size:11px">3</span>
@@ -1813,7 +1813,7 @@ curl http://localhost:5000/health</div>
             <div class="api-panel">
               <div class="api-panel-header">
                 <span class="method-badge GET">GET</span>
-                <span class="api-url">http://sidecar:5000/AuthorizationHeader?DownstreamApi=graph-app</span>
+                <span class="api-url">http://sidecar:5000/AuthorizationHeaderUnauthenticated/graph-app</span>
                 <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copySidecarCmd()">📋 Copy</button>
               </div>
               <div class="api-body" id="cmd-text-0703"></div>
@@ -1826,7 +1826,7 @@ curl http://localhost:5000/health</div>
 
             <div class="form-group full" style="margin-top:8px">
               <label>Paste Authorization Header Response</label>
-              <textarea id="paste-0703" rows="4" placeholder='Bearer eyJ0eXAiOiJKV1Qi...' style="font-family:var(--mono); font-size:12px;"></textarea>
+              <textarea id="paste-0703" rows="4" placeholder='{"authorizationHeader":"Bearer eyJ0eXAi..."}' style="font-family:var(--mono); font-size:12px;"></textarea>
             </div>
             <div class="btn-group">
               <button class="btn btn-secondary" onclick="parseStep0703()">🔍 Parse & Verify Token</button>
@@ -1854,11 +1854,10 @@ curl http://localhost:5000/health</div>
 
 <span style="color:#c586c0">def</span> <span style="color:#dcdcaa">get_graph_token</span>():
     resp = requests.get(
-        <span style="color:#ce9178">f"{SIDECAR_URL}/AuthorizationHeader"</span>,
-        params={<span style="color:#ce9178">"DownstreamApi"</span>: <span style="color:#ce9178">"graph-app"</span>}
+        <span style="color:#ce9178">f"{SIDECAR_URL}/AuthorizationHeaderUnauthenticated/graph-app"</span>
     )
     resp.raise_for_status()
-    <span style="color:#c586c0">return</span> resp.text  <span style="color:#6a9955"># Returns "Bearer eyJ0eX..."</span>
+    <span style="color:#c586c0">return</span> resp.json()[<span style="color:#ce9178">"authorizationHeader"</span>]
 
 <span style="color:#569cd6">auth_header</span> = get_graph_token()
 <span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: auth_header}
@@ -1876,9 +1875,10 @@ print(me.json())</div>
 
 <span style="color:#c586c0">async function</span> <span style="color:#dcdcaa">getGraphAuthHeader</span>() {
   <span style="color:#c586c0">const</span> resp = <span style="color:#c586c0">await</span> fetch(
-    <span style="color:#ce9178">`${SIDECAR_URL}/AuthorizationHeader?DownstreamApi=graph-app`</span>
+    <span style="color:#ce9178">`${SIDECAR_URL}/AuthorizationHeaderUnauthenticated/graph-app`</span>
   );
-  <span style="color:#c586c0">return</span> <span style="color:#c586c0">await</span> resp.text();  <span style="color:#6a9955">// "Bearer eyJ0eX..."</span>
+  <span style="color:#c586c0">const</span> data = <span style="color:#c586c0">await</span> resp.json();
+  <span style="color:#c586c0">return</span> data.authorizationHeader;  <span style="color:#6a9955">// "Bearer eyJ0eX..."</span>
 }
 
 <span style="color:#c586c0">const</span> authHeader = <span style="color:#c586c0">await</span> getGraphAuthHeader();
@@ -1895,10 +1895,10 @@ console.log(me);</div>
                   <span class="api-url">Terminal — Request token from sidecar</span>
                 </div>
                 <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
-curl http://localhost:5000/AuthorizationHeader?DownstreamApi=graph-app
+curl http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app
 
 <span style="color:#569cd6"># Use the header to call MS Graph</span>
-AUTH=$(curl -s "http://localhost:5000/AuthorizationHeader?DownstreamApi=graph-app")
+AUTH=$(curl -s "http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app" | jq -r '.authorizationHeader')
 
 curl -H "Authorization: $AUTH" \
   https://graph.microsoft.com/v1.0/me</div>
@@ -2999,7 +2999,7 @@ function downloadCompose() {
 // 07.03 Generate sidecar token request command
 function executeStep0703() {
   const downstreamApi = el('sc-downstreamApi').value.trim() || 'graph-app';
-  const cmd = `curl "http://localhost:5000/AuthorizationHeader?DownstreamApi=${downstreamApi}"`;
+  const cmd = `curl "http://localhost:5000/AuthorizationHeaderUnauthenticated/${downstreamApi}"`;
 
   document.getElementById('cmd-text-0703').textContent = cmd;
   document.getElementById('cmd-0703').style.display = 'block';
@@ -3015,10 +3015,15 @@ function parseStep0703() {
   try {
     const raw = document.getElementById('paste-0703').value.trim();
     if (!raw) throw new Error('Paste the response first.');
-    const token = raw.startsWith('Bearer ') ? raw.substring(7) : raw;
-    if (!token || token.length < 10) throw new Error('Invalid authorization header.');
+    let authHeader;
+    try {
+      const data = JSON.parse(raw);
+      authHeader = data.authorizationHeader || data.authorization_header;
+    } catch { authHeader = raw; }
+    if (!authHeader) throw new Error('No authorizationHeader found in response.');
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
     state.sidecarToken = token;
-    showResponse('response-0703', 200, { authorization_header: raw, token_length: token.length, note: 'Token verified — ready to call APIs' });
+    showResponse('response-0703', 200, { authorizationHeader: authHeader, token_length: token.length, note: 'Token verified — ready to call APIs' });
     markCompleted('0703');
     showToast('✅ Sidecar authorization header verified!');
   } catch (e) { showError('response-0703', e); }
