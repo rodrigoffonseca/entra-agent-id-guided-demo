@@ -1757,6 +1757,42 @@ docker compose logs sidecar
 <span style="color:#569cd6"># Test the sidecar health endpoint</span>
 curl http://localhost:5000/healthz</div>
             </div>
+
+            <div style="margin-top:12px">
+              <h4 style="font-size:13px; margin-bottom:8px;">✅ Expected Output</h4>
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge GET" style="background:#107c10">OUTPUT</span>
+                  <span class="api-url">docker compose up -d</span>
+                </div>
+                <div class="api-body"><span style="color:#6a9955">✔ Network downloads_agent-net         Created
+✔ Container downloads-sidecar-1       Started
+✔ Container downloads-agent-1         Started</span></div>
+              </div>
+              <div class="api-panel" style="margin-top:8px">
+                <div class="api-panel-header">
+                  <span class="method-badge GET" style="background:#107c10">OUTPUT</span>
+                  <span class="api-url">docker compose ps</span>
+                </div>
+                <div class="api-body"><span style="color:#6a9955">NAME                    IMAGE                                      STATUS
+downloads-agent-1       alpine/curl:latest                          Up
+downloads-sidecar-1     mcr.microsoft.com/entra-sdk/auth-sidecar   Up</span></div>
+              </div>
+              <div class="api-panel" style="margin-top:8px">
+                <div class="api-panel-header">
+                  <span class="method-badge GET" style="background:#107c10">OUTPUT</span>
+                  <span class="api-url">curl http://localhost:5000/healthz</span>
+                </div>
+                <div class="api-body"><span style="color:#6a9955">Healthy</span></div>
+              </div>
+              <div class="api-panel" style="margin-top:8px">
+                <div class="api-panel-header">
+                  <span class="method-badge GET" style="background:#107c10">OUTPUT</span>
+                  <span class="api-url">curl http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app</span>
+                </div>
+                <div class="api-body"><span style="color:#6a9955">{"authorizationHeader":"Bearer eyJ0eXAiOiJKV1QiLCJhbGci..."}</span></div>
+              </div>
+            </div>
           </div>
 
           <div class="response-panel" id="response-0702"></div>
