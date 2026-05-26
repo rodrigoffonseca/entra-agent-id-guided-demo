@@ -1518,6 +1518,26 @@ code_challenge_method = S256</div>
 
           <div class="response-panel" id="response-0601"></div>
 
+          <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+            <h4 style="font-size:13px; margin-bottom:8px;">💻 PowerShell Quick Demo</h4>
+            <p class="explanation">
+              Copy and paste this into PowerShell to run the full On-Behalf-Of flow end-to-end. It opens the browser for sign-in, captures the auth code, redeems it for a token, and calls MS Graph as the signed-in user.
+            </p>
+            <div class="btn-group" style="margin-bottom:12px">
+              <button class="btn btn-primary" onclick="generateOboScript()">📋 Generate PowerShell Script</button>
+            </div>
+            <div id="obo-script-panel" style="display:none">
+              <div class="api-panel">
+                <div class="api-panel-header">
+                  <span class="method-badge POST" style="background:#012456">PS</span>
+                  <span class="api-url">PowerShell — On-Behalf-Of Flow</span>
+                  <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyOboScript()">📋 Copy</button>
+                </div>
+                <div class="api-body" id="obo-script-text"></div>
+              </div>
+            </div>
+          </div>
+
           <div class="doc-links">
             <h4>📚 Microsoft Documentation</h4>
             <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow" target="_blank">📄 Authorization Code Flow</a>
@@ -2974,6 +2994,93 @@ async function redeemAuthCode() {
     showResponse('response-0601', resp.status, data);
     if (resp.ok) showToast('✅ Authorization code redeemed!');
   } catch (e) { showError('response-0601', e); }
+}
+
+// 06.01 PowerShell OBO script generator
+function generateOboScript() {
+  const aiClientId = cfg('aiClientId');
+  const aiSecret = cfg('aiClientSecret');
+  const bpAppId = cfg('blueprintAppId');
+  const tenantId = cfg('tenantId');
+  if (!aiClientId || !bpAppId || !tenantId) {
+    showToast('❌ Configure AI App Client ID, Blueprint, and Tenant ID first.', 4000); return;
+  }
+
+  const script = `# === On-Behalf-Of Flow — PowerShell Demo ===
+# Performs the full auth code + PKCE flow, redeems the code, and calls Graph /me
+
+$tenantId    = "${tenantId}"
+$aiClientId  = "${aiClientId}"
+$bpAppId     = "${bpAppId}"
+$redirectUri = "https://jwt.ms"
+$scope       = "api://$bpAppId/access_agent offline_access"
+
+# Step 1: Generate PKCE code_verifier and code_challenge
+$bytes = [byte[]]::new(32)
+[System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+$codeVerifier = [Convert]::ToBase64String($bytes) -replace '\\+','-' -replace '/','_' -replace '=',''
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
+$hash = $sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($codeVerifier))
+$codeChallenge = [Convert]::ToBase64String($hash) -replace '\\+','-' -replace '/','_' -replace '=',''
+
+# Step 2: Open browser for user sign-in
+$authUrl = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/authorize" +
+    "?client_id=$aiClientId" +
+    "&response_type=code" +
+    "&redirect_uri=$([uri]::EscapeDataString($redirectUri))" +
+    "&scope=$([uri]::EscapeDataString($scope))" +
+    "&response_mode=query" +
+    "&code_challenge=$codeChallenge" +
+    "&code_challenge_method=S256"
+
+Write-Host "Opening browser for sign-in..." -ForegroundColor Cyan
+Start-Process $authUrl
+
+# Step 3: Paste the authorization code from the redirect URL
+Write-Host ""
+Write-Host "After signing in, copy the 'code' value from the redirect URL." -ForegroundColor Yellow
+$authCode = Read-Host "Paste the authorization code here"
+
+# Step 4: Redeem the code for tokens
+Write-Host "Redeeming authorization code..." -ForegroundColor Cyan
+$tokenUrl = "https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token"
+$body = @{
+    client_id     = $aiClientId
+    grant_type    = "authorization_code"
+    code          = $authCode
+    redirect_uri  = $redirectUri
+    scope         = $scope
+    code_verifier = $codeVerifier${aiSecret ? `\n    client_secret = "${aiSecret}"` : ''}
+}
+$tokenResponse = Invoke-RestMethod -Method Post -Uri $tokenUrl -Body $body
+Write-Host "Access token obtained!" -ForegroundColor Green
+
+# Step 5: Decode and display token claims
+$jwt = $tokenResponse.access_token
+$parts = $jwt.Split(".")
+$payload = $parts[1].Replace("-","+").Replace("_","/")
+while ($payload.Length % 4) { $payload += "=" }
+$claims = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($payload)) | ConvertFrom-Json
+Write-Host ""
+Write-Host "=== Token Claims ===" -ForegroundColor Cyan
+$claims | Select-Object aud, sub, scp, name, preferred_username | Format-List
+
+# Step 6: Call MS Graph /me with the user's token
+Write-Host "Calling MS Graph /me..." -ForegroundColor Cyan
+$me = Invoke-RestMethod -Uri "https://graph.microsoft.com/v1.0/me" \`
+    -Headers @{ Authorization = "Bearer $jwt" }
+Write-Host ""
+Write-Host "=== You are ===" -ForegroundColor Green
+$me | Select-Object displayName, userPrincipalName, id, jobTitle | Format-List`;
+
+  document.getElementById('obo-script-text').textContent = script;
+  document.getElementById('obo-script-panel').style.display = 'block';
+  showToast('📄 PowerShell script generated!');
+}
+
+function copyOboScript() {
+  const script = document.getElementById('obo-script-text').textContent;
+  navigator.clipboard.writeText(script).then(() => showToast('📋 PowerShell script copied!'));
 }
 
 // 07.02 Generate Docker Compose
