@@ -1890,10 +1890,10 @@ downloads-sidecar-1     mcr.microsoft.com/entra-sdk/auth-sidecar   Up</span></di
 <span style="color:#569cd6">$authHeader</span> = <span style="color:#569cd6">$response</span>.authorizationHeader
 Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#569cd6">$authHeader</span>.Substring(0, 40)<span style="color:#ce9178">"..."</span>
 
-<span style="color:#569cd6"># Use the header to call MS Graph</span>
-<span style="color:#569cd6">$me</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span> `
+<span style="color:#569cd6"># Use the header to call MS Graph (app-only: use /organization, not /me)</span>
+<span style="color:#569cd6">$org</span> = Invoke-RestMethod -Uri <span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span> `
     -Headers @{ Authorization = <span style="color:#569cd6">$authHeader</span> }
-<span style="color:#569cd6">$me</span> | ConvertTo-Json -Depth 3</div>
+<span style="color:#569cd6">$org</span>.value | Select-Object displayName, id | ConvertTo-Json</div>
               </div>
             </div>
             <div class="tab-content" id="tab-python">
@@ -1915,8 +1915,9 @@ Write-Host <span style="color:#ce9178">"Got token:"</span> <span style="color:#5
 
 <span style="color:#569cd6">auth_header</span> = get_graph_token()
 <span style="color:#569cd6">headers</span> = {<span style="color:#ce9178">"Authorization"</span>: auth_header}
-me = requests.get(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, headers=headers)
-print(me.json())</div>
+<span style="color:#6a9955"># App-only tokens: use /organization (not /me)</span>
+org = requests.get(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span>, headers=headers)
+print(org.json())</div>
               </div>
             </div>
             <div class="tab-content" id="tab-node">
@@ -1936,10 +1937,11 @@ print(me.json())</div>
 }
 
 <span style="color:#c586c0">const</span> authHeader = <span style="color:#c586c0">await</span> getGraphAuthHeader();
-<span style="color:#c586c0">const</span> me = <span style="color:#c586c0">await</span> fetch(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/me"</span>, {
+<span style="color:#6a9955">// App-only tokens: use /organization (not /me)</span>
+<span style="color:#c586c0">const</span> org = <span style="color:#c586c0">await</span> fetch(<span style="color:#ce9178">"https://graph.microsoft.com/v1.0/organization"</span>, {
   headers: { Authorization: authHeader }
 }).then(r => r.json());
-console.log(me);</div>
+console.log(org);</div>
               </div>
             </div>
             <div class="tab-content" id="tab-curl">
@@ -1951,11 +1953,11 @@ console.log(me);</div>
                 <div class="api-body"><span style="color:#569cd6"># Request an authorization header from the sidecar</span>
 curl http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app
 
-<span style="color:#569cd6"># Use the header to call MS Graph</span>
+<span style="color:#569cd6"># Use the header to call MS Graph (app-only: use /organization, not /me)</span>
 AUTH=$(curl -s "http://localhost:5000/AuthorizationHeaderUnauthenticated/graph-app" | jq -r '.authorizationHeader')
 
 curl -H "Authorization: $AUTH" \
-  https://graph.microsoft.com/v1.0/me</div>
+  https://graph.microsoft.com/v1.0/organization</div>
               </div>
             </div>
           </div>
