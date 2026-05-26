@@ -2934,12 +2934,12 @@ function executeStep0702() {
   el('sc-tenantId').value = tenantId;
   el('sc-agentIdentityId').value = agentId;
 
-  const yaml = `version: "3.8"
-
-services:
-  # Your AI agent (replace with your own image)
+  const yaml = `services:
+  # Sample agent container (replace with your own image)
+  # Uses alpine/curl so you can test token requests interactively
   agent:
-    image: your-agent-image:latest
+    image: alpine/curl:latest
+    command: ["sleep", "infinity"]
     environment:
       - SIDECAR_URL=http://sidecar:7000
     depends_on:
