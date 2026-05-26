@@ -2950,7 +2950,7 @@ function executeStep0702() {
 
   # Microsoft Entra Auth SDK sidecar
   sidecar:
-    image: mcr.microsoft.com/entra-sdk/auth-sidecar:latest
+    image: mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0-azurelinux3.0-distroless
     ports:
       - "7000:7000"
     environment:
