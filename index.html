@@ -2950,7 +2950,7 @@ function executeStep0702() {
 
   # Microsoft Entra Auth SDK sidecar
   sidecar:
-    image: mcr.microsoft.com/entra/auth-sdk:latest
+    image: mcr.microsoft.com/entra-sdk/auth-sidecar:latest
     ports:
       - "7000:7000"
     environment:
