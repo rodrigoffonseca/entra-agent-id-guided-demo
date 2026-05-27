@@ -326,6 +326,17 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       <div class="nav-item" onclick="scrollToSection('step-0703')" id="nav-0703">
         <span class="nav-dot"></span> 07.03 Request Token via Sidecar
       </div>
+
+      <div class="nav-section">08 — Governance Audit</div>
+      <div class="nav-item" onclick="scrollToSection('step-0801')" id="nav-0801">
+        <span class="nav-dot"></span> 08.01 Blueprints Audit
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0802')" id="nav-0802">
+        <span class="nav-dot"></span> 08.02 Agent Identities Audit
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0803')" id="nav-0803">
+        <span class="nav-dot"></span> 08.03 KQL Alert Rule
+      </div>
     </nav>
     <div class="sidebar-footer">
       Based on <a href="https://github.com/astaykov/entra-agent-id-preview-guide" target="_blank">astaykov/entra-agent-id-preview-guide</a>
@@ -2005,6 +2016,351 @@ echo $AUTH | cut -d'.' -f2 | base64 -d 2>/dev/null | jq .</div>
       </div>
     </section>
 
+    <!-- ======================== STEP 08.01 ======================== -->
+    <section id="step-0801">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">08.01</span>
+          <h2>Audit Agent Blueprints — Missing Sponsors</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Lists all <strong>Agent Identity Blueprints</strong> in your tenant and checks which ones are <strong>missing sponsors</strong>.
+            Blueprints without sponsors lack organizational accountability — a key governance requirement.
+            Results can be downloaded as CSV for reporting.
+          </p>
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div>This audit may take a moment if your tenant has many blueprints. Each blueprint's sponsors are checked individually. The scan handles pagination automatically.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge GET">GET</span>
+              <span class="api-url">https://graph.microsoft.com/beta/applications/microsoft.graph.agentIdentityBlueprint?$select=id,appId,displayName,createdDateTime</span>
+            </div>
+            <div class="api-body">// For each blueprint, checks sponsors via:
+// GET /beta/applications/{id}/microsoft.graph.agentIdentityBlueprint/sponsors?$select=id,displayName</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0801()" id="btn-0801">▶ Audit Blueprints</button>
+            <button class="btn btn-secondary" onclick="downloadAuditCsv('blueprints')" id="btn-csv-0801" style="display:none">⬇️ Download CSV</button>
+          </div>
+
+          <!-- Bulk fix panel (shown after audit finds missing sponsors) -->
+          <div id="bulk-fix-0801" style="display:none; margin-top:16px; padding:16px; background:var(--surface-alt); border:1px solid var(--border); border-radius:var(--radius)">
+            <h3 style="font-size:14px; margin-bottom:8px">🔧 Quick Fix: Assign Sponsor to Flagged Blueprints</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px">Enter a sponsor (user UPN or security group name) to assign to all blueprints flagged as <strong>Missing Sponsors</strong>.</p>
+            <div class="info-box info" style="margin-bottom:12px; font-size:12px">
+              <span class="icon">💡</span>
+              <div>This flow supports <strong>bulk updates</strong> — if multiple blueprints are missing sponsors, all of them will be updated in a single operation. The same sponsor is assigned to every flagged blueprint using throttled concurrent API calls. Preview the API call first to verify before executing.</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap">
+              <div class="form-group" style="flex:1; min-width:250px">
+                <label>Sponsor (UPN or Group Name)</label>
+                <input type="text" id="bulk-sponsor-0801" placeholder="e.g. admin@contoso.com or AI Governance Group">
+              </div>
+              <button class="btn btn-secondary" onclick="previewBulkAssign('blueprints')" id="btn-preview-0801">👁️ Preview API Call</button>
+              <button class="btn btn-primary" onclick="bulkAssignSponsor('blueprints')" id="btn-bulk-0801">🔧 Assign to All Flagged</button>
+            </div>
+            <div id="bulk-api-preview-0801" style="display:none; margin-top:12px"></div>
+            <div id="bulk-progress-0801" style="display:none; margin-top:10px; font-size:13px; color:var(--text-secondary)">
+              <span class="spinner" style="border-color:var(--primary); border-top-color:var(--primary-dark); vertical-align:middle"></span>
+              <span id="bulk-progress-text-0801" style="margin-left:8px"></span>
+            </div>
+            <div id="bulk-result-0801" style="display:none; margin-top:10px"></div>
+          </div>
+
+          <div id="audit-progress-0801" style="display:none; margin-top:12px; font-size:13px; color:var(--text-secondary)">
+            <span class="spinner" style="border-color:var(--primary); border-top-color:var(--primary-dark); vertical-align:middle"></span>
+            <span id="audit-progress-text-0801" style="margin-left:8px"></span>
+          </div>
+
+          <div id="audit-summary-0801" style="display:none; margin-top:12px"></div>
+          <div id="audit-table-0801" style="display:none; margin-top:12px; overflow-x:auto"></div>
+          <div class="response-panel" id="response-0801"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Agent Identity Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/application-list" target="_blank">📄 List Applications (Graph API)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 08.02 ======================== -->
+    <section id="step-0802">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">08.02</span>
+          <h2>Audit Agent Identities — Missing Sponsors</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Lists all <strong>Agent Identities</strong> (service principals) in your tenant and checks which ones are <strong>missing sponsors</strong>.
+            Agent identities without sponsors may indicate ungoverned AI agents operating in the tenant.
+          </p>
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div>This audit may take a moment if your tenant has many agent identities. The scan handles pagination and throttling automatically.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge GET">GET</span>
+              <span class="api-url">https://graph.microsoft.com/beta/servicePrincipals/microsoft.graph.agentIdentity?$select=id,appId,displayName,createdDateTime,accountEnabled</span>
+            </div>
+            <div class="api-body">// For each agent identity, checks sponsors via:
+// GET /beta/servicePrincipals/{id}/microsoft.graph.agentIdentity/sponsors?$select=id,displayName</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0802()" id="btn-0802">▶ Audit Agent Identities</button>
+            <button class="btn btn-secondary" onclick="downloadAuditCsv('identities')" id="btn-csv-0802" style="display:none">⬇️ Download CSV</button>
+          </div>
+
+          <!-- Bulk fix panel (shown after audit finds missing sponsors) -->
+          <div id="bulk-fix-0802" style="display:none; margin-top:16px; padding:16px; background:var(--surface-alt); border:1px solid var(--border); border-radius:var(--radius)">
+            <h3 style="font-size:14px; margin-bottom:8px">🔧 Quick Fix: Assign Sponsor to Flagged Identities</h3>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px">Enter a sponsor (user UPN or security group name) to assign to all agent identities flagged as <strong>Missing Sponsors</strong>.</p>
+            <div class="info-box info" style="margin-bottom:12px; font-size:12px">
+              <span class="icon">💡</span>
+              <div>This flow supports <strong>bulk updates</strong> — if multiple agent identities are missing sponsors, all of them will be updated in a single operation. The same sponsor is assigned to every flagged identity using throttled concurrent API calls. Preview the API call first to verify before executing.</div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap">
+              <div class="form-group" style="flex:1; min-width:250px">
+                <label>Sponsor (UPN or Group Name)</label>
+                <input type="text" id="bulk-sponsor-0802" placeholder="e.g. admin@contoso.com or AI Governance Group">
+              </div>
+              <button class="btn btn-secondary" onclick="previewBulkAssign('identities')" id="btn-preview-0802">👁️ Preview API Call</button>
+              <button class="btn btn-primary" onclick="bulkAssignSponsor('identities')" id="btn-bulk-0802">🔧 Assign to All Flagged</button>
+            </div>
+            <div id="bulk-api-preview-0802" style="display:none; margin-top:12px"></div>
+            <div id="bulk-progress-0802" style="display:none; margin-top:10px; font-size:13px; color:var(--text-secondary)">
+              <span class="spinner" style="border-color:var(--primary); border-top-color:var(--primary-dark); vertical-align:middle"></span>
+              <span id="bulk-progress-text-0802" style="margin-left:8px"></span>
+            </div>
+            <div id="bulk-result-0802" style="display:none; margin-top:10px"></div>
+          </div>
+
+          <div id="audit-progress-0802" style="display:none; margin-top:12px; font-size:13px; color:var(--text-secondary)">
+            <span class="spinner" style="border-color:var(--primary); border-top-color:var(--primary-dark); vertical-align:middle"></span>
+            <span id="audit-progress-text-0802" style="margin-left:8px"></span>
+          </div>
+
+          <div id="audit-summary-0802" style="display:none; margin-top:12px"></div>
+          <div id="audit-table-0802" style="display:none; margin-top:12px; overflow-x:auto"></div>
+          <div class="response-panel" id="response-0802"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/agent-identity-overview" target="_blank">📄 Agent Identity Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/serviceprincipal-list" target="_blank">📄 List Service Principals (Graph API)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 08.03 ======================== -->
+    <section id="step-0803">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">08.03</span>
+          <h2>Continuous Monitoring — KQL Alert Rule</h2>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Steps 08.01 and 08.02 provide <strong>point-in-time</strong> audits. For <strong>continuous monitoring</strong>, you can configure
+            Azure Monitor alert rules using KQL queries against your <strong>Entra ID Audit Logs</strong> in Log Analytics.
+            This ensures you get notified whenever an Agent Blueprint or Agent Identity is created without a sponsor.
+          </p>
+
+          <div class="info-box info">
+            <span class="icon">📋</span>
+            <div><strong>Prerequisites:</strong> You need an Entra ID tenant with <strong>Diagnostic Settings</strong> configured to send
+            <strong>Audit Logs</strong> to a <strong>Log Analytics workspace</strong>. Go to <em>Entra ID → Diagnostic settings → Add diagnostic setting</em> and enable <code>AuditLogs</code>.</div>
+          </div>
+
+          <h3 style="font-size:14px; margin:20px 0 8px">KQL — Detect Blueprints Created Without Sponsors</h3>
+          <p class="explanation">
+            This query detects <code>Add application</code> audit events where the application type is <code>AgentIdentityBlueprint</code>
+            but no <code>sponsors</code> binding was included in the creation payload.
+          </p>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span style="font-size:11px; font-weight:700; padding:2px 6px; border-radius:3px; background:#4ec9b0; color:#1e1e1e; font-family:var(--mono)">KQL</span>
+              <span class="api-url" style="color:#9cdcfe">Blueprints without sponsors</span>
+              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#d4d4d4; border:1px solid rgba(255,255,255,0.2)" onclick="copyKql('kql-blueprint')">📋 Copy</button>
+            </div>
+            <div class="api-body" id="kql-blueprint">AuditLogs
+| where TimeGenerated > ago(24h)
+| where OperationName == "Add application"
+| where Result == "success"
+// Look for AgentIdentityBlueprint in the modified properties
+| mv-expand TargetResource = TargetResources
+| where TargetResource.type == "Application"
+| mv-expand ModifiedProperty = TargetResource.modifiedProperties
+| where ModifiedProperty.displayName == "@odata.type"
+    and ModifiedProperty.newValue has "AgentIdentityBlueprint"
+// Check if sponsors binding is absent
+| where not(TargetResources has "sponsors")
+| project
+    TimeGenerated,
+    OperationName,
+    BlueprintName = tostring(TargetResource.displayName),
+    BlueprintId = tostring(TargetResource.id),
+    InitiatedBy = coalesce(
+        tostring(InitiatedBy.user.userPrincipalName),
+        tostring(InitiatedBy.app.displayName),
+        "Unknown"
+    ),
+    CorrelationId
+| order by TimeGenerated desc</div>
+          </div>
+
+          <h3 style="font-size:14px; margin:20px 0 8px">KQL — Detect Agent Identities Created Without Sponsors</h3>
+          <p class="explanation">
+            This query detects <code>Add service principal</code> events for Agent Identity types that were created without a sponsor binding.
+          </p>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span style="font-size:11px; font-weight:700; padding:2px 6px; border-radius:3px; background:#4ec9b0; color:#1e1e1e; font-family:var(--mono)">KQL</span>
+              <span class="api-url" style="color:#9cdcfe">Agent Identities without sponsors</span>
+              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#d4d4d4; border:1px solid rgba(255,255,255,0.2)" onclick="copyKql('kql-identity')">📋 Copy</button>
+            </div>
+            <div class="api-body" id="kql-identity">AuditLogs
+| where TimeGenerated > ago(24h)
+| where OperationName == "Add service principal"
+| where Result == "success"
+| mv-expand TargetResource = TargetResources
+| where TargetResource.type == "ServicePrincipal"
+| mv-expand ModifiedProperty = TargetResource.modifiedProperties
+| where ModifiedProperty.displayName == "ServicePrincipalType"
+    or ModifiedProperty.displayName == "@odata.type"
+| where ModifiedProperty.newValue has_any (
+    "AgentIdentity", "agentIdentity", "agentIdentityBlueprintPrincipal"
+)
+// Check if sponsors binding is absent
+| where not(TargetResources has "sponsors")
+| project
+    TimeGenerated,
+    OperationName,
+    IdentityName = tostring(TargetResource.displayName),
+    IdentityId = tostring(TargetResource.id),
+    AppId = tostring(TargetResource.appId),
+    InitiatedBy = coalesce(
+        tostring(InitiatedBy.user.userPrincipalName),
+        tostring(InitiatedBy.app.displayName),
+        "Unknown"
+    ),
+    CorrelationId
+| order by TimeGenerated desc</div>
+          </div>
+
+          <h3 style="font-size:14px; margin:20px 0 8px">KQL — Combined Alert (Blueprints + Identities)</h3>
+          <p class="explanation">
+            A single unified query that covers both blueprints and agent identities. Use this for a <strong>single alert rule</strong>
+            that catches any agent-related object created without a sponsor.
+          </p>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span style="font-size:11px; font-weight:700; padding:2px 6px; border-radius:3px; background:#4ec9b0; color:#1e1e1e; font-family:var(--mono)">KQL</span>
+              <span class="api-url" style="color:#9cdcfe">Combined alert — all agent objects</span>
+              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#d4d4d4; border:1px solid rgba(255,255,255,0.2)" onclick="copyKql('kql-combined')">📋 Copy</button>
+            </div>
+            <div class="api-body" id="kql-combined">let BlueprintsWithoutSponsors = AuditLogs
+| where TimeGenerated > ago(24h)
+| where OperationName == "Add application"
+| where Result == "success"
+| mv-expand TargetResource = TargetResources
+| where TargetResource.type == "Application"
+| mv-expand ModifiedProperty = TargetResource.modifiedProperties
+| where ModifiedProperty.displayName == "@odata.type"
+    and ModifiedProperty.newValue has "AgentIdentityBlueprint"
+| where not(TargetResources has "sponsors")
+| project
+    TimeGenerated,
+    ObjectType = "AgentIdentityBlueprint",
+    ObjectName = tostring(TargetResource.displayName),
+    ObjectId = tostring(TargetResource.id),
+    InitiatedBy = coalesce(
+        tostring(InitiatedBy.user.userPrincipalName),
+        tostring(InitiatedBy.app.displayName),
+        "Unknown"
+    ),
+    CorrelationId;
+let IdentitiesWithoutSponsors = AuditLogs
+| where TimeGenerated > ago(24h)
+| where OperationName == "Add service principal"
+| where Result == "success"
+| mv-expand TargetResource = TargetResources
+| where TargetResource.type == "ServicePrincipal"
+| mv-expand ModifiedProperty = TargetResource.modifiedProperties
+| where ModifiedProperty.displayName in (
+    "ServicePrincipalType", "@odata.type"
+)
+| where ModifiedProperty.newValue has_any (
+    "AgentIdentity", "agentIdentity",
+    "agentIdentityBlueprintPrincipal"
+)
+| where not(TargetResources has "sponsors")
+| project
+    TimeGenerated,
+    ObjectType = "AgentIdentity",
+    ObjectName = tostring(TargetResource.displayName),
+    ObjectId = tostring(TargetResource.id),
+    InitiatedBy = coalesce(
+        tostring(InitiatedBy.user.userPrincipalName),
+        tostring(InitiatedBy.app.displayName),
+        "Unknown"
+    ),
+    CorrelationId;
+union BlueprintsWithoutSponsors, IdentitiesWithoutSponsors
+| order by TimeGenerated desc</div>
+          </div>
+
+          <h3 style="font-size:14px; margin:20px 0 8px">How to Set Up the Alert Rule</h3>
+          <div style="font-size:13px; color:var(--text-secondary); line-height:1.8">
+            <ol style="margin-left:20px">
+              <li>Go to <strong>Azure Portal → Monitor → Alerts → Create alert rule</strong></li>
+              <li>Set <strong>Scope</strong> to your <strong>Log Analytics workspace</strong> that receives Entra ID audit logs</li>
+              <li>Under <strong>Condition</strong>, choose <strong>Custom log search</strong> and paste the combined KQL query above</li>
+              <li>Set <strong>Measure</strong> to <em>Table rows</em>, <strong>Aggregation type</strong> to <em>Count</em>, <strong>Threshold</strong> to <em>greater than 0</em></li>
+              <li>Set <strong>Evaluation frequency</strong> (e.g. every 1 hour) and <strong>Lookback period</strong> (e.g. 1 hour) to match</li>
+              <li>Under <strong>Actions</strong>, select or create an <strong>Action Group</strong> (email, Teams webhook, Logic App, etc.)</li>
+              <li>Set <strong>Severity</strong> (e.g. Sev 2 — Warning) and a descriptive <strong>alert rule name</strong></li>
+              <li>Click <strong>Create</strong> — you'll now be alerted when ungoverned agent objects appear in your tenant</li>
+            </ol>
+          </div>
+
+          <div class="info-box warning" style="margin-top:16px">
+            <span class="icon">⚠️</span>
+            <div><strong>Audit log delay:</strong> Entra ID audit logs may have a latency of <strong>5–15 minutes</strong> before they appear in Log Analytics. Factor this into your alert evaluation frequency. A 1-hour evaluation window provides reliable coverage.</div>
+          </div>
+
+          <div class="info-box success" style="margin-top:8px">
+            <span class="icon">💡</span>
+            <div><strong>Tip:</strong> Combine this alert with the <strong>Quick Fix</strong> workflow from steps 08.01/08.02. When you receive an alert, open this demo, run the audit, and use the bulk sponsor assignment to remediate immediately.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/monitoring-health/howto-integrate-activity-logs-with-azure-monitor-logs" target="_blank">📄 Integrate Entra Logs with Log Analytics</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-create-log-alert-rule" target="_blank">📄 Create Log Alert Rules</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/identity/monitoring-health/reference-audit-activities" target="_blank">📄 Audit Activity Reference</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/" target="_blank">📄 KQL Reference</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -3215,6 +3571,460 @@ function switchSidecarTab(tabEl, contentId) {
   const parent = tabEl.closest('.card-body');
   parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById(contentId).classList.add('active');
+}
+
+// ==================== STEP 08: GOVERNANCE AUDIT ====================
+
+// Store audit results for CSV export
+const auditResults = { blueprints: [], identities: [] };
+
+// CSV-safe: escape fields that could trigger Excel formula injection
+function csvSafe(val) {
+  if (val == null) return '';
+  let s = String(val);
+  const dangerChars = ['=', '+', '-', '@', '\t', '\r'];
+  if (dangerChars.some(c => s.startsWith(c))) s = "'" + s;
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+// Paginated Graph fetch — collects all pages
+async function graphFetchAll(url, token) {
+  const allItems = [];
+  let nextUrl = url;
+  while (nextUrl) {
+    const resp = await graphCall('GET', nextUrl, token);
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(`Graph API error ${resp.status}: ${err?.error?.message || resp.statusText}`);
+    }
+    const data = await resp.json();
+    if (data.value) allItems.push(...data.value);
+    nextUrl = data['@odata.nextLink'] || null;
+  }
+  return allItems;
+}
+
+// Throttled concurrent execution
+async function throttledMap(items, fn, concurrency = 4) {
+  const results = [];
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
+}
+
+// Render audit results table
+function renderAuditTable(containerId, rows, columns) {
+  const container = document.getElementById(containerId);
+  if (!rows.length) {
+    container.innerHTML = '<div class="info-box success"><span class="icon">✅</span><div>No items found — nothing to audit.</div></div>';
+    container.style.display = 'block';
+    return;
+  }
+  let html = '<table style="width:100%; border-collapse:collapse; font-size:12px;">';
+  html += '<thead><tr style="background:var(--surface-alt)">';
+  columns.forEach(c => { html += `<th style="padding:6px 8px; text-align:left; border-bottom:2px solid var(--border); white-space:nowrap">${c.label}</th>`; });
+  html += '</tr></thead><tbody>';
+  rows.forEach(row => {
+    const bg = row._auditStatus === 'missingSponsors' ? '#fde7e9' : row._auditStatus === 'checkFailed' ? '#fff4ce' : '';
+    html += `<tr style="${bg ? 'background:' + bg : ''}">`;
+    columns.forEach(c => {
+      let val = c.render ? c.render(row) : (row[c.key] ?? '');
+      html += `<td style="padding:6px 8px; border-bottom:1px solid var(--border); word-break:break-all">${val}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  container.style.display = 'block';
+}
+
+// 08.01 Audit Blueprints
+async function executeStep0801() {
+  setLoading('btn-0801', true);
+  const progressEl = document.getElementById('audit-progress-0801');
+  const progressText = document.getElementById('audit-progress-text-0801');
+  progressEl.style.display = 'block';
+  progressText.textContent = 'Fetching blueprints...';
+  document.getElementById('btn-csv-0801').style.display = 'none';
+
+  try {
+    const token = await getDelegatedToken();
+    const url = 'https://graph.microsoft.com/beta/applications/microsoft.graph.agentIdentityBlueprint?$select=id,appId,displayName,createdDateTime&$top=100';
+    const blueprints = await graphFetchAll(url, token);
+
+    progressText.textContent = `Found ${blueprints.length} blueprint(s). Checking sponsors (0/${blueprints.length})...`;
+
+    let checked = 0;
+    const results = await throttledMap(blueprints, async (bp) => {
+      const row = {
+        objectType: 'AgentIdentityBlueprint',
+        id: bp.id,
+        appId: bp.appId,
+        displayName: bp.displayName,
+        createdDateTime: bp.createdDateTime || '',
+        sponsorCount: 0,
+        sponsors: '',
+        _auditStatus: 'hasSponsors'
+      };
+      try {
+        const sponsorUrl = `https://graph.microsoft.com/beta/applications/${bp.id}/sponsors?$select=id,displayName&$top=100`;
+        const sponsors = await graphFetchAll(sponsorUrl, token);
+        row.sponsorCount = sponsors.length;
+        row.sponsors = sponsors.map(s => s.displayName || s.id).join('; ');
+        if (sponsors.length === 0) row._auditStatus = 'missingSponsors';
+      } catch (e) {
+        row._auditStatus = 'checkFailed';
+        row.sponsors = `Error: ${e.message}`;
+      }
+      checked++;
+      progressText.textContent = `Found ${blueprints.length} blueprint(s). Checking sponsors (${checked}/${blueprints.length})...`;
+      return row;
+    }, 4);
+
+    auditResults.blueprints = results;
+    progressEl.style.display = 'none';
+
+    // Summary
+    const missing = results.filter(r => r._auditStatus === 'missingSponsors').length;
+    const failed = results.filter(r => r._auditStatus === 'checkFailed').length;
+    const ok = results.length - missing - failed;
+    const summaryEl = document.getElementById('audit-summary-0801');
+    summaryEl.innerHTML = `
+      <div style="display:flex; gap:12px; flex-wrap:wrap">
+        <div class="info-box" style="flex:1; min-width:120px; background:var(--primary-light); border-left:3px solid var(--primary); padding:10px 14px">
+          <div><strong style="font-size:20px">${results.length}</strong><br><span style="font-size:12px">Total Blueprints</span></div>
+        </div>
+        <div class="info-box" style="flex:1; min-width:120px; ${missing > 0 ? 'background:#fde7e9; border-left:3px solid var(--danger)' : 'background:#dff6dd; border-left:3px solid var(--success)'}; padding:10px 14px">
+          <div><strong style="font-size:20px">${missing}</strong><br><span style="font-size:12px">Missing Sponsors</span></div>
+        </div>
+        <div class="info-box" style="flex:1; min-width:120px; background:#dff6dd; border-left:3px solid var(--success); padding:10px 14px">
+          <div><strong style="font-size:20px">${ok}</strong><br><span style="font-size:12px">Has Sponsors</span></div>
+        </div>
+        ${failed > 0 ? `<div class="info-box" style="flex:1; min-width:120px; background:#fff4ce; border-left:3px solid var(--warning); padding:10px 14px">
+          <div><strong style="font-size:20px">${failed}</strong><br><span style="font-size:12px">Check Failed</span></div>
+        </div>` : ''}
+      </div>`;
+    summaryEl.style.display = 'block';
+
+    // Table
+    renderAuditTable('audit-table-0801', results, [
+      { key: 'displayName', label: 'Display Name' },
+      { key: 'appId', label: 'App ID' },
+      { key: 'createdDateTime', label: 'Created', render: r => r.createdDateTime ? new Date(r.createdDateTime).toLocaleDateString() : '' },
+      { key: 'sponsorCount', label: 'Sponsors' },
+      { key: 'sponsors', label: 'Sponsor Names' },
+      { key: '_auditStatus', label: 'Status', render: r => {
+        if (r._auditStatus === 'missingSponsors') return '<span style="color:var(--danger); font-weight:600">⛔ Missing</span>';
+        if (r._auditStatus === 'checkFailed') return '<span style="color:#8a6914; font-weight:600">⚠️ Error</span>';
+        return '<span style="color:var(--success); font-weight:600">✅ OK</span>';
+      }}
+    ]);
+
+    if (results.length > 0) document.getElementById('btn-csv-0801').style.display = 'inline-flex';
+    if (missing > 0) document.getElementById('bulk-fix-0801').style.display = 'block';
+    else document.getElementById('bulk-fix-0801').style.display = 'none';
+    markCompleted('0801');
+    showToast(`✅ Audit complete: ${missing} blueprint(s) missing sponsors out of ${results.length}.`);
+  } catch (e) {
+    progressEl.style.display = 'none';
+    showError('response-0801', e);
+  }
+  setLoading('btn-0801', false);
+}
+
+// 08.02 Audit Agent Identities
+async function executeStep0802() {
+  setLoading('btn-0802', true);
+  const progressEl = document.getElementById('audit-progress-0802');
+  const progressText = document.getElementById('audit-progress-text-0802');
+  progressEl.style.display = 'block';
+  progressText.textContent = 'Fetching agent identities...';
+  document.getElementById('btn-csv-0802').style.display = 'none';
+
+  try {
+    const token = await getDelegatedToken();
+    const url = 'https://graph.microsoft.com/beta/servicePrincipals/microsoft.graph.agentIdentity?$select=id,appId,displayName,createdDateTime,accountEnabled&$top=100';
+    const identities = await graphFetchAll(url, token);
+
+    progressText.textContent = `Found ${identities.length} identity(ies). Checking sponsors (0/${identities.length})...`;
+
+    let checked = 0;
+    const results = await throttledMap(identities, async (sp) => {
+      const row = {
+        objectType: 'AgentIdentity',
+        id: sp.id,
+        appId: sp.appId,
+        displayName: sp.displayName,
+        createdDateTime: sp.createdDateTime || '',
+        accountEnabled: sp.accountEnabled ? 'Yes' : 'No',
+        sponsorCount: 0,
+        sponsors: '',
+        _auditStatus: 'hasSponsors'
+      };
+      try {
+        const sponsorUrl = `https://graph.microsoft.com/beta/servicePrincipals/${sp.id}/sponsors?$select=id,displayName&$top=100`;
+        const sponsors = await graphFetchAll(sponsorUrl, token);
+        row.sponsorCount = sponsors.length;
+        row.sponsors = sponsors.map(s => s.displayName || s.id).join('; ');
+        if (sponsors.length === 0) row._auditStatus = 'missingSponsors';
+      } catch (e) {
+        row._auditStatus = 'checkFailed';
+        row.sponsors = `Error: ${e.message}`;
+      }
+      checked++;
+      progressText.textContent = `Found ${identities.length} identity(ies). Checking sponsors (${checked}/${identities.length})...`;
+      return row;
+    }, 4);
+
+    auditResults.identities = results;
+    progressEl.style.display = 'none';
+
+    // Summary
+    const missing = results.filter(r => r._auditStatus === 'missingSponsors').length;
+    const failed = results.filter(r => r._auditStatus === 'checkFailed').length;
+    const ok = results.length - missing - failed;
+    const disabled = results.filter(r => r.accountEnabled === 'No').length;
+    const summaryEl = document.getElementById('audit-summary-0802');
+    summaryEl.innerHTML = `
+      <div style="display:flex; gap:12px; flex-wrap:wrap">
+        <div class="info-box" style="flex:1; min-width:120px; background:var(--primary-light); border-left:3px solid var(--primary); padding:10px 14px">
+          <div><strong style="font-size:20px">${results.length}</strong><br><span style="font-size:12px">Total Identities</span></div>
+        </div>
+        <div class="info-box" style="flex:1; min-width:120px; ${missing > 0 ? 'background:#fde7e9; border-left:3px solid var(--danger)' : 'background:#dff6dd; border-left:3px solid var(--success)'}; padding:10px 14px">
+          <div><strong style="font-size:20px">${missing}</strong><br><span style="font-size:12px">Missing Sponsors</span></div>
+        </div>
+        <div class="info-box" style="flex:1; min-width:120px; background:#dff6dd; border-left:3px solid var(--success); padding:10px 14px">
+          <div><strong style="font-size:20px">${ok}</strong><br><span style="font-size:12px">Has Sponsors</span></div>
+        </div>
+        ${disabled > 0 ? `<div class="info-box" style="flex:1; min-width:120px; background:#fff4ce; border-left:3px solid var(--warning); padding:10px 14px">
+          <div><strong style="font-size:20px">${disabled}</strong><br><span style="font-size:12px">Disabled</span></div>
+        </div>` : ''}
+        ${failed > 0 ? `<div class="info-box" style="flex:1; min-width:120px; background:#fff4ce; border-left:3px solid var(--warning); padding:10px 14px">
+          <div><strong style="font-size:20px">${failed}</strong><br><span style="font-size:12px">Check Failed</span></div>
+        </div>` : ''}
+      </div>`;
+    summaryEl.style.display = 'block';
+
+    // Table
+    renderAuditTable('audit-table-0802', results, [
+      { key: 'displayName', label: 'Display Name' },
+      { key: 'appId', label: 'App ID' },
+      { key: 'createdDateTime', label: 'Created', render: r => r.createdDateTime ? new Date(r.createdDateTime).toLocaleDateString() : '' },
+      { key: 'accountEnabled', label: 'Enabled' },
+      { key: 'sponsorCount', label: 'Sponsors' },
+      { key: 'sponsors', label: 'Sponsor Names' },
+      { key: '_auditStatus', label: 'Status', render: r => {
+        if (r._auditStatus === 'missingSponsors') return '<span style="color:var(--danger); font-weight:600">⛔ Missing</span>';
+        if (r._auditStatus === 'checkFailed') return '<span style="color:#8a6914; font-weight:600">⚠️ Error</span>';
+        return '<span style="color:var(--success); font-weight:600">✅ OK</span>';
+      }}
+    ]);
+
+    if (results.length > 0) document.getElementById('btn-csv-0802').style.display = 'inline-flex';
+    if (missing > 0) document.getElementById('bulk-fix-0802').style.display = 'block';
+    else document.getElementById('bulk-fix-0802').style.display = 'none';
+    markCompleted('0802');
+    showToast(`✅ Audit complete: ${missing} identity(ies) missing sponsors out of ${results.length}.`);
+  } catch (e) {
+    progressEl.style.display = 'none';
+    showError('response-0802', e);
+  }
+  setLoading('btn-0802', false);
+}
+
+// Resolve a sponsor input to a directoryObject URI (reusable for bulk fix)
+async function resolveAuditSponsor(input, token) {
+  if (!input) throw new Error('Enter a sponsor UPN or group name.');
+  if (input.includes('@')) {
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(input)}?$select=id,displayName,userPrincipalName`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (!resp.ok) throw new Error('User not found: ' + input);
+    const user = await resp.json();
+    return { id: user.id, displayName: user.displayName, uri: `https://graph.microsoft.com/v1.0/directoryObjects/${user.id}` };
+  } else if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input)) {
+    return { id: input, displayName: input, uri: `https://graph.microsoft.com/v1.0/directoryObjects/${input}` };
+  } else {
+    const resp = await fetch(
+      `https://graph.microsoft.com/v1.0/groups?$filter=displayName eq '${input.replace(/'/g, "''")}'&$select=id,displayName`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    const data = await resp.json();
+    if (!data.value || data.value.length === 0) throw new Error('Group not found: ' + input);
+    const grp = data.value[0];
+    return { id: grp.id, displayName: grp.displayName, uri: `https://graph.microsoft.com/v1.0/directoryObjects/${grp.id}` };
+  }
+}
+
+// Preview the API call before bulk assigning sponsors
+async function previewBulkAssign(type) {
+  const isBlueprint = type === 'blueprints';
+  const stepId = isBlueprint ? '0801' : '0802';
+  const previewEl = document.getElementById('bulk-api-preview-' + stepId);
+  const input = document.getElementById('bulk-sponsor-' + stepId).value.trim();
+
+  if (!input) { showToast('❌ Enter a sponsor UPN or group name first.'); return; }
+
+  const flagged = auditResults[type].filter(r => r._auditStatus === 'missingSponsors');
+  if (!flagged.length) { showToast('ℹ️ No items flagged as missing sponsors.'); return; }
+
+  try {
+    const token = await getDelegatedToken();
+    const sponsor = await resolveAuditSponsor(input, token);
+    const endpoint = isBlueprint ? 'applications' : 'servicePrincipals';
+    const exampleId = flagged[0].id;
+
+    const apiUrl = `https://graph.microsoft.com/beta/${endpoint}/{objectId}/sponsors/$ref`;
+    const body = JSON.stringify({ "@odata.id": sponsor.uri }, null, 2);
+
+    previewEl.innerHTML = `
+      <div class="api-panel">
+        <div class="api-panel-header">
+          <span class="method-badge POST">POST</span>
+          <span class="api-url">${apiUrl}</span>
+        </div>
+        <div class="api-body">${body}</div>
+      </div>
+      <div style="font-size:12px; color:var(--text-secondary); margin-top:6px; line-height:1.7">
+        <strong>Sponsor resolved:</strong> ${sponsor.displayName} (<code>${sponsor.id}</code>)<br>
+        <strong>Targets:</strong> ${flagged.length} ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'} missing sponsors<br>
+        <strong>Example target:</strong> <code>${flagged[0].displayName}</code> → <code>…/${endpoint}/${exampleId}/sponsors/$ref</code>
+      </div>`;
+    previewEl.style.display = 'block';
+    showToast(`✅ Sponsor resolved: ${sponsor.displayName} — review the API call above, then click Assign.`);
+  } catch (e) {
+    previewEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${e.message}</div></div>`;
+    previewEl.style.display = 'block';
+  }
+}
+
+// Bulk assign sponsor to flagged items
+async function bulkAssignSponsor(type) {
+  const isBlueprint = type === 'blueprints';
+  const stepId = isBlueprint ? '0801' : '0802';
+  const btnId = 'btn-bulk-' + stepId;
+  const progressEl = document.getElementById('bulk-progress-' + stepId);
+  const progressText = document.getElementById('bulk-progress-text-' + stepId);
+  const resultEl = document.getElementById('bulk-result-' + stepId);
+
+  const input = document.getElementById('bulk-sponsor-' + stepId).value.trim();
+  if (!input) { showToast('❌ Enter a sponsor UPN or group name first.'); return; }
+
+  const flagged = auditResults[type].filter(r => r._auditStatus === 'missingSponsors');
+  if (!flagged.length) { showToast('ℹ️ No items flagged as missing sponsors.'); return; }
+
+  if (!confirm(`Assign sponsor "${input}" to ${flagged.length} ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'}?`)) return;
+
+  setLoading(btnId, true);
+  progressEl.style.display = 'block';
+  resultEl.style.display = 'none';
+  progressText.textContent = 'Resolving sponsor...';
+
+  try {
+    const token = await getDelegatedToken();
+    const sponsor = await resolveAuditSponsor(input, token);
+    progressText.textContent = `Sponsor resolved: ${sponsor.displayName}. Assigning (0/${flagged.length})...`;
+
+    let succeeded = 0, failed = 0;
+    const errors = [];
+
+    // Use the $ref endpoint to add a sponsor
+    // For applications: POST /beta/applications/{id}/sponsors/$ref
+    // For service principals: POST /beta/servicePrincipals/{id}/sponsors/$ref
+    await throttledMap(flagged, async (item, idx) => {
+      try {
+        const baseUrl = isBlueprint
+          ? `https://graph.microsoft.com/beta/applications/${item.id}/sponsors/$ref`
+          : `https://graph.microsoft.com/beta/servicePrincipals/${item.id}/sponsors/$ref`;
+        const body = { "@odata.id": sponsor.uri };
+        const resp = await graphCall('POST', baseUrl, token, body);
+        if (resp.ok || resp.status === 204) {
+          succeeded++;
+          // Update the audit result in memory
+          item._auditStatus = 'hasSponsors';
+          item.sponsorCount = (item.sponsorCount || 0) + 1;
+          item.sponsors = item.sponsors ? item.sponsors + '; ' + sponsor.displayName : sponsor.displayName;
+        } else {
+          failed++;
+          const err = await resp.json().catch(() => ({}));
+          errors.push(`${item.displayName}: ${err?.error?.message || resp.statusText}`);
+        }
+      } catch (e) {
+        failed++;
+        errors.push(`${item.displayName}: ${e.message}`);
+      }
+      progressText.textContent = `Assigning sponsor (${succeeded + failed}/${flagged.length})...`;
+    }, 4);
+
+    progressEl.style.display = 'none';
+
+    // Show result summary
+    let resultHtml = '';
+    if (succeeded > 0) {
+      resultHtml += `<div class="info-box success"><span class="icon">✅</span><div><strong>${succeeded}</strong> ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'} updated with sponsor <strong>${sponsor.displayName}</strong>.</div></div>`;
+    }
+    if (failed > 0) {
+      resultHtml += `<div class="info-box danger"><span class="icon">❌</span><div><strong>${failed}</strong> failed:<ul style="margin:4px 0 0 16px; font-size:12px">${errors.map(e => `<li>${e}</li>`).join('')}</ul></div></div>`;
+    }
+    if (succeeded > 0) {
+      resultHtml += `<div class="info-box info" style="font-size:12px"><span class="icon">💡</span><div>Run the audit again to verify the updated sponsor assignments.</div></div>`;
+    }
+    resultEl.innerHTML = resultHtml;
+    resultEl.style.display = 'block';
+    showToast(`✅ Done: ${succeeded} assigned, ${failed} failed.`);
+  } catch (e) {
+    progressEl.style.display = 'none';
+    resultEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${e.message}</div></div>`;
+    resultEl.style.display = 'block';
+    showToast('❌ ' + e.message);
+  }
+  setLoading(btnId, false);
+}
+
+// Copy KQL query to clipboard
+function copyKql(elementId) {
+  const text = document.getElementById(elementId).textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('📋 KQL query copied to clipboard!'));
+}
+
+// CSV download for audit results
+function downloadAuditCsv(type) {
+  const rows = auditResults[type];
+  if (!rows || !rows.length) { showToast('❌ No audit data. Run the audit first.'); return; }
+
+  const isBlueprint = type === 'blueprints';
+  const headers = isBlueprint
+    ? ['Object Type', 'Object ID', 'App ID', 'Display Name', 'Created Date', 'Sponsor Count', 'Sponsors', 'Audit Status']
+    : ['Object Type', 'Object ID', 'App ID', 'Display Name', 'Created Date', 'Account Enabled', 'Sponsor Count', 'Sponsors', 'Audit Status'];
+
+  const csvRows = [headers.join(',')];
+  rows.forEach(r => {
+    const fields = isBlueprint
+      ? [r.objectType, r.id, r.appId, r.displayName, r.createdDateTime, r.sponsorCount, r.sponsors, r._auditStatus]
+      : [r.objectType, r.id, r.appId, r.displayName, r.createdDateTime, r.accountEnabled, r.sponsorCount, r.sponsors, r._auditStatus];
+    csvRows.push(fields.map(csvSafe).join(','));
+  });
+
+  const csv = csvRows.join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const date = new Date().toISOString().split('T')[0];
+  a.download = `entra-agent-${type}-audit-${date}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`⬇️ CSV downloaded: ${rows.length} ${type} exported.`);
 }
 
 // ==================== INIT ====================
