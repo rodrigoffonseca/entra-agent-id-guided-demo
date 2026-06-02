@@ -334,6 +334,26 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       <div class="nav-item" onclick="scrollToSection('step-0803')" id="nav-0803">
         <span class="nav-dot"></span> 08.03 KQL Alert Rule
       </div>
+
+      <div class="nav-section">09 — Access Package</div>
+      <div class="nav-item" onclick="scrollToSection('step-0901')" id="nav-0901">
+        <span class="nav-dot"></span> 09.01 Create Catalog
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0902')" id="nav-0902">
+        <span class="nav-dot"></span> 09.02 Add Graph Resource
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0903')" id="nav-0903">
+        <span class="nav-dot"></span> 09.03 Create Access Package
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0904')" id="nav-0904">
+        <span class="nav-dot"></span> 09.04 Add API Permissions
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0905')" id="nav-0905">
+        <span class="nav-dot"></span> 09.05 Assignment Policy
+      </div>
+      <div class="nav-item" onclick="scrollToSection('step-0906')" id="nav-0906">
+        <span class="nav-dot"></span> 09.06 Assign to Agent
+      </div>
     </nav>
     <div class="sidebar-footer">
       Based on <a href="https://github.com/astaykov/entra-agent-id-preview-guide" target="_blank">astaykov/entra-agent-id-preview-guide</a>
@@ -639,10 +659,14 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
                     <td style="padding:8px; border-bottom:1px solid var(--border)">Human User via AI App</td>
                     <td style="padding:8px; border-bottom:1px solid var(--border)">Auth Code + PKCE</td>
                     <td style="padding:8px; border-bottom:1px solid var(--border)">06.01</td></tr>
-                <tr><td style="padding:8px;">Third-Party Sidecar</td>
-                    <td style="padding:8px;">Agent Identity via Sidecar</td>
-                    <td style="padding:8px;">Sidecar → Entra Agent ID → Token</td>
-                    <td style="padding:8px;">07.01 → 07.02 → 07.03</td></tr>
+                <tr><td style="padding:8px; border-bottom:1px solid var(--border)">Third-Party Sidecar</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Agent Identity via Sidecar</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">Sidecar → Entra Agent ID → Token</td>
+                    <td style="padding:8px; border-bottom:1px solid var(--border)">07.01 → 07.02 → 07.03</td></tr>
+                <tr><td style="padding:8px;">Access Package Governance</td>
+                    <td style="padding:8px;">Agent Identity + Sponsor</td>
+                    <td style="padding:8px;">Sponsor requests API permissions via Entitlement Mgmt</td>
+                    <td style="padding:8px;">09.01 → 09.06</td></tr>
               </tbody>
             </table>
           </div>
@@ -2555,6 +2579,511 @@ union BlueprintsWithoutSponsors, IdentitiesWithoutSponsors
       </div>
     </section>
 
+    <!-- ======================== SECTION 09 FLOW DIAGRAM ======================== -->
+    <section>
+      <div class="card" style="border-left:3px solid #8e44ad;">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge" style="background:#e8daef; color:#8e44ad;">09</span>
+          <h2>Access Package — Govern Agent API Permissions</h2>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            <strong>Entitlement Management Access Packages</strong> provide a governed way to assign API permissions to Agent Identities.
+            Instead of granting permissions directly, you create an access package that bundles the required Graph API permissions,
+            define an assignment policy scoped to service principals or agent IDs, and then assign the package to your autonomous agent.
+            This enables lifecycle governance: time-limited access, approval workflows, periodic access reviews, and automatic revocation.
+          </p>
+
+          <div class="arch-diagram" style="padding:20px;">
+            <h3 style="font-size:14px; margin-bottom:16px;">Access Package Lifecycle for Agent Permissions</h3>
+            <svg viewBox="0 0 700 180" style="width:100%; max-width:680px; height:auto; margin:0 auto; display:block;">
+              <defs>
+                <marker id="ah09" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8e44ad"/></marker>
+                <marker id="ah09g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#107c10"/></marker>
+              </defs>
+
+              <!-- Catalog -->
+              <rect x="10" y="40" width="120" height="56" rx="6" fill="#e8daef" stroke="#8e44ad" stroke-width="2"/>
+              <text x="70" y="62" text-anchor="middle" font-size="10" font-weight="600" fill="#8e44ad">📂 Catalog</text>
+              <text x="70" y="76" text-anchor="middle" font-size="9" fill="#8e44ad">(09.01)</text>
+
+              <!-- Access Package -->
+              <rect x="170" y="40" width="130" height="56" rx="6" fill="#e8daef" stroke="#8e44ad" stroke-width="2"/>
+              <text x="235" y="62" text-anchor="middle" font-size="10" font-weight="600" fill="#8e44ad">📦 Access Package</text>
+              <text x="235" y="76" text-anchor="middle" font-size="9" fill="#8e44ad">(09.03)</text>
+
+              <!-- API Permissions -->
+              <rect x="340" y="40" width="130" height="56" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="2"/>
+              <text x="405" y="62" text-anchor="middle" font-size="10" font-weight="600" fill="#0078d4">🔐 API Permissions</text>
+              <text x="405" y="76" text-anchor="middle" font-size="9" fill="#0078d4">(09.02 + 09.04)</text>
+
+              <!-- Agent Identity -->
+              <rect x="520" y="40" width="140" height="56" rx="6" fill="#dff6dd" stroke="#107c10" stroke-width="2"/>
+              <text x="590" y="62" text-anchor="middle" font-size="10" font-weight="600" fill="#107c10">🤖 Agent Identity</text>
+              <text x="590" y="76" text-anchor="middle" font-size="9" fill="#107c10">(09.05 + 09.06)</text>
+
+              <!-- Arrows -->
+              <line x1="132" y1="68" x2="168" y2="68" stroke="#8e44ad" stroke-width="2" marker-end="url(#ah09)"/>
+              <line x1="302" y1="68" x2="338" y2="68" stroke="#8e44ad" stroke-width="2" marker-end="url(#ah09)"/>
+              <line x1="472" y1="68" x2="518" y2="68" stroke="#107c10" stroke-width="2" marker-end="url(#ah09g)"/>
+
+              <!-- Labels -->
+              <text x="150" y="58" text-anchor="middle" font-size="8" fill="#8e44ad">contains</text>
+              <text x="320" y="58" text-anchor="middle" font-size="8" fill="#8e44ad">includes</text>
+              <text x="495" y="58" text-anchor="middle" font-size="8" fill="#107c10">assigned</text>
+
+              <!-- Governance note -->
+              <rect x="10" y="120" width="650" height="40" rx="4" fill="none" stroke="#ddd" stroke-width="1"/>
+              <text x="335" y="138" text-anchor="middle" font-size="10" fill="#555">🛡️ Governance: Time-limited access · Approval workflows · Access reviews · Auto-revocation</text>
+              <text x="335" y="153" text-anchor="middle" font-size="9" fill="#888">Policy (09.05) controls who can receive permissions and under what conditions</text>
+            </svg>
+          </div>
+
+          <div class="info-box info">
+            <span class="icon">📋</span>
+            <div><strong>Prerequisites:</strong> Complete Steps 01 (Blueprint) and 02 (Agent Identity) first. You need an <strong>Entra ID P1</strong> license (or higher) for Entitlement Management. Your signed-in account needs the <strong>Identity Governance Administrator</strong> role or be an <strong>Entitlement Management Catalog Creator</strong>.</div>
+          </div>
+
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div><strong>Important:</strong> Access packages with API Permissions must have policies scoped to <strong>service principals or agent IDs only</strong> — users cannot receive API permissions through access packages. Also, certain <a href="https://learn.microsoft.com/en-us/graph/api/resources/agentid-platform-overview?view=graph-rest-beta#microsoft-graph-permissions-blocked-for-agents" target="_blank">high-risk Graph permissions are blocked for agents</a>.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-create" target="_blank">📄 Create an Access Package</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-resources#add-an-api-permission" target="_blank">📄 Add API Permissions to Access Package</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/tutorial-access-package-api" target="_blank">📄 Tutorial: Manage Access Packages via Graph API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/resources/agentid-platform-overview?view=graph-rest-beta" target="_blank">📄 Agent ID Platform Overview</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.01 ======================== -->
+    <section id="step-0901">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.01</span>
+          <h2>Create Entitlement Management Catalog</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            A <strong>catalog</strong> is a container that groups related resources and access packages. We create a dedicated catalog
+            for agent identity governance — this keeps agent permissions separate from human access packages and enables scoped administration.
+          </p>
+
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div>If you already have a catalog you want to use, you can skip this step and enter the catalog ID directly in the configuration below.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/catalogs</span>
+            </div>
+            <div class="api-body">{
+  "displayName": "Agent Identity Governance",
+  "description": "Catalog for managing API permissions assigned to autonomous agent identities via access packages.",
+  "isExternallyVisible": false
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>displayName</code> — Human-readable name for the catalog</li>
+              <li><code>description</code> — Describes the catalog's purpose</li>
+              <li><code>isExternallyVisible</code> — <code>false</code> = only visible within your tenant (agents don't need cross-tenant discovery)</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0901()" id="btn-0901">▶ Execute Step 09.01</button>
+          </div>
+          <div class="response-panel" id="response-0901"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/entitlementmanagement-post-catalogs" target="_blank">📄 Create Catalog API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-catalog-create" target="_blank">📄 Create & Manage a Catalog</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.02 ======================== -->
+    <section id="step-0902">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.02</span>
+          <h2>Add Microsoft Graph as a Catalog Resource</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Before you can include Graph API permissions in an access package, the <strong>Microsoft Graph</strong> service principal
+            must be registered as a resource in the catalog. This step adds the Microsoft Graph application (identified by its service principal Object ID)
+            as an <code>AadApplication</code> resource.
+          </p>
+
+          <div class="info-box info">
+            <span class="icon">🔑</span>
+            <div>The <strong>MS Graph SP Object ID</strong> was auto-detected during sign-in (it's the service principal for <code>appId: 00000003-0000-0000-c000-000000000000</code>). This is used as the <code>originId</code> to add Graph as a resource.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/resourceRequests</span>
+            </div>
+            <div class="api-body">{
+  "catalogId": "<span style="color:#ce9178">{{catalogId}}</span>",
+  "requestType": "AdminAdd",
+  "justification": "Add Microsoft Graph as a resource for agent API permissions",
+  "accessPackageResource": {
+    "displayName": "Microsoft Graph",
+    "resourceType": "AadApplication",
+    "originId": "<span style="color:#ce9178">{{msGraphObjectId}}</span>",
+    "originSystem": "AadApplication"
+  }
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>catalogId</code> — The catalog created in step 09.01</li>
+              <li><code>requestType: "AdminAdd"</code> — Administrator adding a resource (no approval required)</li>
+              <li><code>originId</code> — Object ID of the Microsoft Graph service principal in your tenant</li>
+              <li><code>originSystem: "AadApplication"</code> — Identifies this as an Azure AD application resource</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0902()" id="btn-0902">▶ Execute Step 09.02</button>
+          </div>
+          <div class="response-panel" id="response-0902"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/entitlementmanagement-post-resourcerequests" target="_blank">📄 Create Resource Request API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-catalog-create#add-resources-to-a-catalog" target="_blank">📄 Add Resources to a Catalog</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.03 ======================== -->
+    <section id="step-0903">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.03</span>
+          <h2>Create the Access Package</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>access package</strong> is the central governance object. It bundles the Graph API permissions that your autonomous agent needs.
+            When assigned to an agent identity, the permissions are provisioned automatically. When the assignment expires or is revoked,
+            the permissions are removed — providing full lifecycle management.
+          </p>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/accessPackages</span>
+            </div>
+            <div class="api-body">{
+  "catalogId": "<span style="color:#ce9178">{{catalogId}}</span>",
+  "displayName": "Agent Graph API Permissions",
+  "description": "Grants Graph API permissions (User.Read.All, Mail.Send) to autonomous agent identities for the Digital Worker scenario."
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>catalogId</code> — The catalog that contains the Graph resource (from 09.01)</li>
+              <li><code>displayName</code> — A descriptive name shown in the My Access portal and audit logs</li>
+              <li><code>description</code> — Explains what permissions this package grants and to whom</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0903()" id="btn-0903">▶ Execute Step 09.03</button>
+          </div>
+          <div class="response-panel" id="response-0903"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/entitlementmanagement-post-accesspackages" target="_blank">📄 Create Access Package API</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.04 ======================== -->
+    <section id="step-0904">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.04</span>
+          <h2>Add Graph API Permission Roles to Access Package</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            Now we add specific <strong>Graph API application permissions</strong> (app roles) as resource role scopes to the access package.
+            This step first retrieves the available roles from the Microsoft Graph resource in the catalog, then adds the selected
+            permission (e.g., <code>User.Read.All</code>) as a resource role scope in the access package.
+          </p>
+
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div><strong>Note:</strong> Certain high-risk Graph permissions are <a href="https://learn.microsoft.com/en-us/graph/api/resources/agentid-platform-overview?view=graph-rest-beta#microsoft-graph-permissions-blocked-for-agents" target="_blank">blocked for agent identities</a>. The demo uses <code>User.Read.All</code> (Application) which is allowed.</div>
+          </div>
+
+          <h3 style="font-size:13px; margin:16px 0 8px;">Step A — List Graph resource roles in the catalog</h3>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge GET">GET</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/catalogs/{catalogId}/resources?$filter=originSystem eq 'AadApplication'&$expand=roles,scopes</span>
+            </div>
+            <div class="api-body">// Retrieves the MS Graph resource with all its available roles (app permissions)
+// from the catalog. We use the role IDs in Step B.</div>
+          </div>
+
+          <h3 style="font-size:13px; margin:16px 0 8px;">Step B — Add permission role scope to access package</h3>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/accessPackages/{accessPackageId}/accessPackageResourceRoleScopes</span>
+            </div>
+            <div class="api-body">{
+  "role": {
+    "originId": "<span style="color:#ce9178">{{appRoleId}}</span>",
+    "displayName": "User.Read.All",
+    "originSystem": "AadApplication",
+    "resource": {
+      "id": "<span style="color:#ce9178">{{catalogResourceId}}</span>",
+      "resourceType": "AadApplication",
+      "originId": "<span style="color:#ce9178">{{msGraphObjectId}}</span>",
+      "originSystem": "AadApplication"
+    }
+  },
+  "scope": {
+    "originId": "<span style="color:#ce9178">{{msGraphObjectId}}</span>",
+    "originSystem": "AadApplication"
+  }
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>role.originId</code> — The app role ID (GUID) of the specific Graph permission (e.g., <code>User.Read.All</code>)</li>
+              <li><code>role.displayName</code> — Human-readable permission name</li>
+              <li><code>role.resource.id</code> — The catalog resource ID for Microsoft Graph (returned by Step A)</li>
+              <li><code>scope.originId</code> — The service principal Object ID of the resource (Microsoft Graph)</li>
+            </ul>
+          </details>
+
+          <div style="margin:12px 0">
+            <label style="font-size:12px; font-weight:600; display:block; margin-bottom:4px">Select Graph Permission:</label>
+            <select id="cfg-graphPermission" style="padding:6px 10px; border:1px solid var(--border); border-radius:4px; font-size:13px; min-width:300px">
+              <option value="User.Read.All">User.Read.All (Application)</option>
+              <option value="Mail.Send">Mail.Send (Application)</option>
+              <option value="Calendars.Read">Calendars.Read (Application)</option>
+              <option value="Files.Read.All">Files.Read.All (Application)</option>
+              <option value="Sites.Read.All">Sites.Read.All (Application)</option>
+              <option value="Chat.Read.All">Chat.Read.All (Application)</option>
+            </select>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0904()" id="btn-0904">▶ Execute Step 09.04</button>
+          </div>
+          <div class="response-panel" id="response-0904"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/accesspackage-post-accesspackageresourcerolescopes" target="_blank">📄 Add Resource Role Scope API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-resources#add-an-api-permission" target="_blank">📄 Add API Permission to Access Package</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.05 ======================== -->
+    <section id="step-0905">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.05</span>
+          <h2>Create Assignment Policy — Sponsor Requests on Behalf of Agent</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            An <strong>assignment policy</strong> controls who can receive the access package and who can request it.
+            Since agents cannot request access themselves, we configure the policy so that the <strong>sponsor</strong>
+            (the user or group assigned as the agent's owner in steps 01–02) can request access <strong>on behalf of</strong> the agent identity.
+            This models the real-world governance flow: a human sponsor is accountable for which permissions their agents receive.
+          </p>
+
+          <div class="info-box info">
+            <span class="icon">💡</span>
+            <div><strong>Sponsor-driven governance:</strong> The sponsor configured during agent creation (step 01.01 / 02.01) is the <strong>allowed requestor</strong> in this policy.
+            They can request, renew, or remove API permission assignments for the agent identities they own — providing clear accountability and auditability.</div>
+          </div>
+
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div><strong>Key constraint:</strong> API Permissions in access packages can <strong>only</strong> be assigned to service principals or agent IDs. The policy's <code>allowedTargetScope</code> must be set to <code>specificDirectoryServicePrincipals</code>. Users cannot be targets of API permission assignments.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/assignmentPolicies</span>
+            </div>
+            <div class="api-body">{
+  "accessPackageId": "<span style="color:#ce9178">{{accessPackageId}}</span>",
+  "displayName": "Sponsor-requested agent permissions",
+  "description": "Allows the agent sponsor to request Graph API permissions on behalf of the agent identities they own. 90-day duration.",
+  "allowedTargetScope": "specificDirectoryServicePrincipals",
+  "specificAllowedTargets": [],
+  "expiration": {
+    "endDateTime": null,
+    "duration": "P90D",
+    "type": "afterDuration"
+  },
+  "requestorSettings": {
+    "enableTargetsToSelfAddAccess": false,
+    "enableTargetsToSelfUpdateAccess": false,
+    "enableTargetsToSelfRemoveAccess": false,
+    "allowedRequestors": [
+      {
+        "@odata.type": "#microsoft.graph.singleUser",
+        "userId": "<span style="color:#ce9178">{{sponsorId}}</span>",
+        "isBackup": false
+      }
+    ]
+  },
+  "requestApprovalSettings": {
+    "isApprovalRequiredForAdd": false,
+    "isApprovalRequiredForUpdate": false
+  }
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>allowedTargetScope: "specificDirectoryServicePrincipals"</code> — Only service principals (agent IDs) can be assigned</li>
+              <li><code>specificAllowedTargets: []</code> — Any service principal can be a target (the sponsor controls which ones)</li>
+              <li><code>requestorSettings.enableTargetsToSelfAddAccess: false</code> — Agents cannot self-request permissions</li>
+              <li><code>requestorSettings.allowedRequestors</code> — The <strong>sponsor</strong> (user or group) who can request on behalf of the agent</li>
+              <li><code>allowedRequestors.userId</code> — Object ID of the sponsor (same user/group configured in steps 01–02)</li>
+              <li><code>expiration.duration: "P90D"</code> — Access expires after 90 days (ISO 8601); sponsor can renew</li>
+              <li><code>requestApprovalSettings.isApprovalRequiredForAdd: false</code> — Demo mode with no approval; in production, enable approval with a secondary reviewer for defense-in-depth</li>
+            </ul>
+          </details>
+
+          <div class="info-box success" style="margin-top:12px">
+            <span class="icon">🔄</span>
+            <div><strong>Production recommendation:</strong> Enable <code>isApprovalRequiredForAdd: true</code> with a multi-stage approval (e.g., the sponsor's manager or a security team) for defense-in-depth. You can also add <code>accessReviewSettings</code> to periodically re-certify that the agent still needs the permissions.</div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0905()" id="btn-0905">▶ Execute Step 09.05</button>
+          </div>
+          <div class="response-panel" id="response-0905"></div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/entitlementmanagement-post-assignmentpolicies" target="_blank">📄 Create Assignment Policy API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-request-policy" target="_blank">📄 Request Policy Settings</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-approval-policy" target="_blank">📄 Approval Policy Settings</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STEP 09.06 ======================== -->
+    <section id="step-0906">
+      <div class="card">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge">09.06</span>
+          <h2>Assign Access Package to Agent Identity</h2>
+          <span class="auth-label delegated">🔑 Delegated</span>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The sponsor now requests the access package assignment <strong>on behalf of</strong> the autonomous agent identity.
+            This triggers the entitlement management engine to provision the Graph API permissions (app role assignments) to the agent identity.
+            The assignment follows the policy — access is granted for 90 days. The sponsor can renew before expiration or revoke early if the agent is decommissioned.
+          </p>
+
+          <div class="info-box success">
+            <span class="icon">✅</span>
+            <div><strong>End result:</strong> Your Agent Identity will have the Graph API permissions (e.g., <code>User.Read.All</code>) provisioned as app role assignments — requested by its sponsor. You can verify in Entra ID → Enterprise Applications → Permissions tab, or via <code>GET /servicePrincipals/{id}/appRoleAssignments</code>.</div>
+          </div>
+
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST">POST</span>
+              <span class="api-url">https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/assignmentRequests</span>
+            </div>
+            <div class="api-body">{
+  "requestType": "UserAdd",
+  "accessPackageAssignment": {
+    "targetId": "<span style="color:#ce9178">{{agentIdentityId}}</span>",
+    "assignmentPolicyId": "<span style="color:#ce9178">{{assignmentPolicyId}}</span>",
+    "accessPackageId": "<span style="color:#ce9178">{{accessPackageId}}</span>"
+  },
+  "justification": "Granting Graph API permissions to autonomous agent for Digital Worker scenario. Requested by sponsor."
+}</div>
+          </div>
+
+          <details style="margin:8px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Parameters Explained</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>requestType: "UserAdd"</code> — The sponsor (a user) is requesting access on behalf of the target service principal</li>
+              <li><code>targetId</code> — Object ID of the Agent Identity service principal (from step 02.01)</li>
+              <li><code>assignmentPolicyId</code> — The sponsor-scoped policy created in step 09.05</li>
+              <li><code>accessPackageId</code> — The access package created in step 09.03</li>
+              <li><code>justification</code> — Business reason for the assignment (logged in audit trail)</li>
+            </ul>
+          </details>
+
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="executeStep0906()" id="btn-0906">▶ Execute Step 09.06</button>
+          </div>
+          <div class="response-panel" id="response-0906"></div>
+
+          <div class="info-box info" style="margin-top:16px">
+            <span class="icon">⏱️</span>
+            <div><strong>Processing time:</strong> Entitlement Management processes assignments asynchronously. The app role assignment may take <strong>1–5 minutes</strong> to fully provision. Check the assignment status via <code>GET /identityGovernance/entitlementManagement/assignments?$filter=targetId eq '{agentIdentityId}'</code>.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/graph/api/entitlementmanagement-post-assignmentrequests" target="_blank">📄 Create Assignment Request API</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-assignments" target="_blank">📄 View & Manage Assignments</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -3129,7 +3658,7 @@ function markCompleted(stepId) {
   state.completedSteps.add(stepId);
   const nav = document.getElementById(`nav-${stepId}`);
   if (nav) nav.classList.add('completed');
-  const total = 13;
+  const total = 19;
   el('progressFill').style.width = Math.round((state.completedSteps.size / total) * 100) + '%';
 }
 
@@ -4206,6 +4735,231 @@ function downloadAuditCsv(type) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(`⬇️ CSV downloaded: ${rows.length} ${type} exported.`);
+}
+
+// ==================== STEPS 09: ACCESS PACKAGE GOVERNANCE ====================
+
+async function executeStep0901() {
+  setLoading('btn-0901', true);
+  try {
+    const token = await getDelegatedToken();
+    const body = {
+      displayName: "Agent Identity Governance",
+      description: "Catalog for managing API permissions assigned to autonomous agent identities via access packages.",
+      isExternallyVisible: false
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/catalogs', token, body);
+    const data = await resp.json();
+    showResponse('response-0901', resp.status, data);
+    if (resp.ok) {
+      setVar('catalogId', data.id);
+      markCompleted('0901');
+      showToast('✅ Catalog created! ID: ' + data.id);
+    }
+  } catch (e) { showError('response-0901', e); }
+  setLoading('btn-0901', false);
+}
+
+async function executeStep0902() {
+  setLoading('btn-0902', true);
+  try {
+    const token = await getDelegatedToken();
+    const catalogId = cfg('catalogId');
+    if (!catalogId) throw new Error('Catalog ID is required (complete step 09.01 first).');
+    const msGraphObjId = cfg('msGraphObjectId');
+    if (!msGraphObjId) throw new Error('MS Graph SP Object ID is required (auto-detected on sign-in).');
+
+    const body = {
+      catalogId: catalogId,
+      requestType: "AdminAdd",
+      justification: "Add Microsoft Graph as a resource for agent API permissions",
+      accessPackageResource: {
+        displayName: "Microsoft Graph",
+        resourceType: "AadApplication",
+        originId: msGraphObjId,
+        originSystem: "AadApplication"
+      }
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/resourceRequests', token, body);
+    const data = await resp.json();
+    showResponse('response-0902', resp.status, data);
+    if (resp.ok) {
+      markCompleted('0902');
+      showToast('✅ Microsoft Graph added to catalog as a resource!');
+    }
+  } catch (e) { showError('response-0902', e); }
+  setLoading('btn-0902', false);
+}
+
+async function executeStep0903() {
+  setLoading('btn-0903', true);
+  try {
+    const token = await getDelegatedToken();
+    const catalogId = cfg('catalogId');
+    if (!catalogId) throw new Error('Catalog ID is required (complete step 09.01 first).');
+
+    const body = {
+      catalogId: catalogId,
+      displayName: "Agent Graph API Permissions",
+      description: "Grants Graph API permissions to autonomous agent identities for the Digital Worker scenario."
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/accessPackages', token, body);
+    const data = await resp.json();
+    showResponse('response-0903', resp.status, data);
+    if (resp.ok) {
+      setVar('accessPackageId', data.id);
+      markCompleted('0903');
+      showToast('✅ Access Package created! ID: ' + data.id);
+    }
+  } catch (e) { showError('response-0903', e); }
+  setLoading('btn-0903', false);
+}
+
+async function executeStep0904() {
+  setLoading('btn-0904', true);
+  try {
+    const token = await getDelegatedToken();
+    const catalogId = cfg('catalogId');
+    const accessPackageId = cfg('accessPackageId');
+    const msGraphObjId = cfg('msGraphObjectId');
+    if (!catalogId) throw new Error('Catalog ID is required (complete step 09.01 first).');
+    if (!accessPackageId) throw new Error('Access Package ID is required (complete step 09.03 first).');
+    if (!msGraphObjId) throw new Error('MS Graph SP Object ID is required.');
+
+    const selectedPermission = el('cfg-graphPermission')?.value || 'User.Read.All';
+
+    // Step A: Get the Graph resource from the catalog with roles and scopes
+    const resourceResp = await graphCall('GET',
+      `https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/catalogs/${catalogId}/resources?$filter=originSystem eq 'AadApplication' and originId eq '${msGraphObjId}'&$expand=roles,scopes`,
+      token);
+    const resourceData = await resourceResp.json();
+    if (!resourceResp.ok || !resourceData.value || resourceData.value.length === 0) {
+      throw new Error('Microsoft Graph resource not found in catalog. Complete step 09.02 first.');
+    }
+
+    const graphResource = resourceData.value[0];
+    const catalogResourceId = graphResource.id;
+
+    // Find the matching role
+    const role = graphResource.roles?.find(r => r.displayName === selectedPermission);
+    if (!role) {
+      throw new Error(`Permission "${selectedPermission}" not found in Graph resource roles. Available: ${(graphResource.roles || []).slice(0, 10).map(r => r.displayName).join(', ')}...`);
+    }
+
+    const scope = graphResource.scopes?.[0];
+    if (!scope) throw new Error('No scope found for the Graph resource in the catalog.');
+
+    // Step B: Add the resource role scope to the access package
+    const body = {
+      role: {
+        originId: role.originId,
+        displayName: role.displayName,
+        originSystem: "AadApplication",
+        resource: {
+          id: catalogResourceId,
+          resourceType: "AadApplication",
+          originId: msGraphObjId,
+          originSystem: "AadApplication"
+        }
+      },
+      scope: {
+        id: scope.id,
+        originId: scope.originId,
+        originSystem: "AadApplication"
+      }
+    };
+    const resp = await graphCall('POST',
+      `https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/accessPackages/${accessPackageId}/accessPackageResourceRoleScopes`,
+      token, body);
+    const data = await resp.json();
+    showResponse('response-0904', resp.status, data, `Permission: ${selectedPermission}`);
+    if (resp.ok) {
+      markCompleted('0904');
+      showToast(`✅ "${selectedPermission}" added to access package!`);
+    }
+  } catch (e) { showError('response-0904', e); }
+  setLoading('btn-0904', false);
+}
+
+async function executeStep0905() {
+  setLoading('btn-0905', true);
+  try {
+    const token = await getDelegatedToken();
+    const accessPackageId = cfg('accessPackageId');
+    if (!accessPackageId) throw new Error('Access Package ID is required (complete step 09.03 first).');
+
+    // Get sponsor ID — the sponsor who will request on behalf of the agent
+    const sponsorId = cfg('sponsorGroupId');
+    const sponsorType = cfg('sponsorType') || 'user';
+    if (!sponsorId) throw new Error('Sponsor ID is required. Make sure a sponsor is configured (steps 01–02).');
+
+    const allowedRequestors = sponsorType === 'group'
+      ? [{ "@odata.type": "#microsoft.graph.groupMembers", "groupId": sponsorId, "isBackup": false }]
+      : [{ "@odata.type": "#microsoft.graph.singleUser", "userId": sponsorId, "isBackup": false }];
+
+    const body = {
+      accessPackageId: accessPackageId,
+      displayName: "Sponsor-requested agent permissions",
+      description: "Allows the agent sponsor to request Graph API permissions on behalf of the agent identities they own. 90-day duration.",
+      allowedTargetScope: "specificDirectoryServicePrincipals",
+      specificAllowedTargets: [],
+      expiration: {
+        endDateTime: null,
+        duration: "P90D",
+        type: "afterDuration"
+      },
+      requestorSettings: {
+        enableTargetsToSelfAddAccess: false,
+        enableTargetsToSelfUpdateAccess: false,
+        enableTargetsToSelfRemoveAccess: false,
+        allowedRequestors: allowedRequestors
+      },
+      requestApprovalSettings: {
+        isApprovalRequiredForAdd: false,
+        isApprovalRequiredForUpdate: false
+      }
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/assignmentPolicies', token, body);
+    const data = await resp.json();
+    showResponse('response-0905', resp.status, data);
+    if (resp.ok) {
+      setVar('assignmentPolicyId', data.id);
+      markCompleted('0905');
+      showToast('✅ Assignment policy created! Sponsor can now request on behalf of agents.');
+    }
+  } catch (e) { showError('response-0905', e); }
+  setLoading('btn-0905', false);
+}
+
+async function executeStep0906() {
+  setLoading('btn-0906', true);
+  try {
+    const token = await getDelegatedToken();
+    const agentIdentityId = cfg('agentIdentityId');
+    const assignmentPolicyId = cfg('assignmentPolicyId');
+    const accessPackageId = cfg('accessPackageId');
+    if (!agentIdentityId) throw new Error('Agent Identity ID is required (complete step 02.01 first).');
+    if (!assignmentPolicyId) throw new Error('Assignment Policy ID is required (complete step 09.05 first).');
+    if (!accessPackageId) throw new Error('Access Package ID is required (complete step 09.03 first).');
+
+    const body = {
+      requestType: "UserAdd",
+      accessPackageAssignment: {
+        targetId: agentIdentityId,
+        assignmentPolicyId: assignmentPolicyId,
+        accessPackageId: accessPackageId
+      },
+      justification: "Granting Graph API permissions to autonomous agent for Digital Worker scenario. Requested by sponsor."
+    };
+    const resp = await graphCall('POST', 'https://graph.microsoft.com/beta/identityGovernance/entitlementManagement/assignmentRequests', token, body);
+    const data = await resp.json();
+    showResponse('response-0906', resp.status, data);
+    if (resp.ok) {
+      markCompleted('0906');
+      showToast('✅ Access package assigned to agent! Permissions will be provisioned in 1–5 minutes.');
+    }
+  } catch (e) { showError('response-0906', e); }
+  setLoading('btn-0906', false);
 }
 
 // ==================== INIT ====================

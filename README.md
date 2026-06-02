@@ -15,6 +15,7 @@ This demo provides a guided, point-and-click experience for setting up and gover
 | **On-Behalf-Of** | Agent acts on behalf of a human user | 01 → 06 |
 | **Third-Party Sidecar** | Containerized auth sidecar for non-Microsoft agents (AWS Bedrock, Ollama, n8n) | 01 → 07 |
 | **Governance Audit** | Audit blueprints & identities for missing sponsors, bulk remediate, set up continuous alerts | 08 |
+| **Access Package Governance** | Governed API permission assignment to agent identities via Entitlement Management | 01 → 02 → 09 |
 
 Each step includes:
 - 📝 **Plain-language explanation** of what the step does and why
@@ -95,6 +96,25 @@ Audit, remediate, and continuously monitor agent identity governance in your ten
 | 08.02 | Agent Identities Audit | List all Agent Identities, check for missing sponsors, download CSV report |
 | 08.03 | KQL Alert Rule | KQL queries for Azure Monitor to alert on ungoverned agent objects |
 
+### 09 — Access Package Governance
+Create an Entitlement Management access package that assigns Graph API permissions to an autonomous agent identity, with the sponsor requesting on behalf of the agent.
+
+| Step | Description | API |
+|------|-------------|-----|
+| 09.01 | Create Catalog | `POST /beta/identityGovernance/entitlementManagement/catalogs` |
+| 09.02 | Add Graph Resource | `POST /beta/identityGovernance/entitlementManagement/resourceRequests` |
+| 09.03 | Create Access Package | `POST /beta/identityGovernance/entitlementManagement/accessPackages` |
+| 09.04 | Add API Permissions | `POST /beta/.../accessPackages/{id}/accessPackageResourceRoleScopes` |
+| 09.05 | Assignment Policy | `POST /beta/identityGovernance/entitlementManagement/assignmentPolicies` |
+| 09.06 | Assign to Agent | `POST /beta/identityGovernance/entitlementManagement/assignmentRequests` |
+
+**Access Package features include:**
+- **Sponsor-driven requests** — the agent's sponsor requests API permissions on behalf of the agent identity
+- **Time-limited access** — 90-day default duration with renewal capability
+- **Lifecycle governance** — automatic revocation when assignments expire
+- **Audit trail** — full visibility into who requested what permissions and when
+- **Separation of concerns** — API permissions for agents kept in a dedicated catalog, separate from human access
+
 **Governance features include:**
 - **Tenant-wide audit** — scans all blueprints and agent identities with automatic pagination
 - **Sponsor verification** — checks each object individually for sponsor assignments
@@ -120,6 +140,7 @@ Audit, remediate, and continuously monitor agent identity governance in your ten
    - Redirect URI: `http://localhost:8080/index.html`
    - Delegated permissions: `Application.ReadWrite.All`, `User.ReadWrite.All`, `DelegatedPermissionGrant.ReadWrite.All`
 4. **For governance alerts (step 08.03):** A Log Analytics workspace with Entra ID Diagnostic Settings streaming Audit Logs
+5. **For access package governance (section 09):** Entra ID P1 license (or higher) and the **Identity Governance Administrator** role. The SPA app needs the additional delegated permission: `EntitlementManagement.ReadWrite.All`
 
 ## Quick Start
 
@@ -214,6 +235,9 @@ The demo covers four distinct authentication patterns:
 - [On-Behalf-Of Flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow)
 - [Integrate Entra Logs with Log Analytics](https://learn.microsoft.com/en-us/entra/identity/monitoring-health/howto-integrate-activity-logs-with-azure-monitor-logs)
 - [Create Log Alert Rules](https://learn.microsoft.com/en-us/azure/azure-monitor/alerts/alerts-create-log-alert-rule)
+- [Entitlement Management Access Packages](https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-create)
+- [Add API Permissions to Access Package](https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-resources#add-an-api-permission)
+- [Tutorial: Manage Access Packages via Graph API](https://learn.microsoft.com/en-us/graph/tutorial-access-package-api)
 
 ## Disclaimer
 
