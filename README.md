@@ -133,6 +133,8 @@ Create an Entitlement Management access package that assigns Graph API permissio
 
 ## Prerequisites
 
+### Sections 01–08 (No additional licenses required)
+
 1. **An Entra ID tenant** with the Agent ID preview enabled
 2. **A user account** with the **Agent ID Administrator** directory role (or Global Administrator)
 3. **A SPA app registration** in your tenant:
@@ -140,7 +142,17 @@ Create an Entitlement Management access package that assigns Graph API permissio
    - Redirect URI: `http://localhost:8080/index.html`
    - Delegated permissions: `Application.ReadWrite.All`, `User.ReadWrite.All`, `DelegatedPermissionGrant.ReadWrite.All`
 4. **For governance alerts (step 08.03):** A Log Analytics workspace with Entra ID Diagnostic Settings streaming Audit Logs
-5. **For access package governance (section 09):** Entra ID P1 license (or higher) and the **Identity Governance Administrator** role. The SPA app needs the additional delegated permission: `EntitlementManagement.ReadWrite.All`
+
+> **Note:** Sections 01 through 08 work with any Entra ID tenant that has the Agent ID preview enabled — no additional licenses beyond the base Entra ID Free/P1 are required.
+
+### Section 09 — Access Package Governance (Additional license required)
+
+5. **License:** One of the following is required for Entitlement Management:
+   - **Microsoft Entra ID Governance** (standalone add-on)
+   - **Microsoft Entra Suite**
+   - **Microsoft 365 E7**
+6. **Role:** The **Identity Governance Administrator** directory role (or Global Administrator)
+7. **SPA permission:** Add the delegated permission `EntitlementManagement.ReadWrite.All` to your SPA app registration
 
 ## Quick Start
 
