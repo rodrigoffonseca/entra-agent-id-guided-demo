@@ -16,6 +16,7 @@ This demo provides a guided, point-and-click experience for setting up and gover
 | **Third-Party Sidecar** | Containerized auth sidecar for non-Microsoft agents (AWS Bedrock, Ollama, n8n) | 01 → 07 |
 | **Governance Audit** | Audit blueprints & identities for missing sponsors, bulk remediate, set up continuous alerts | 08 |
 | **Access Package Governance** | Governed API permission assignment to agent identities via Entitlement Management | 01 → 02 → 09 |
+| **Lifecycle Workflows** | Automated mover/leaver workflows to manage sponsor changes and prevent orphaned agents | 10 |
 
 Each step includes:
 - 📝 **Plain-language explanation** of what the step does and why
@@ -124,6 +125,19 @@ Create an Entitlement Management access package that assigns Graph API permissio
 - **API preview** — inspect the exact Graph API call before executing bulk updates
 - **Continuous monitoring** — ready-to-use KQL queries for Azure Monitor alert rules with step-by-step setup instructions
 
+### 10 — Lifecycle Workflows (Sponsor Mover & Leaver)
+Automate governance when an agent's sponsor changes roles or leaves the organization using Entra ID Lifecycle Workflows with built-in agent sponsorship tasks.
+
+| Step | Description | API |
+|------|-------------|-----|
+| 10.01 | Mover Workflow | `POST /beta/identityGovernance/lifecycleWorkflows/workflows` — triggers on `department` attribute change |
+| 10.02 | Leaver Workflow | `POST /beta/identityGovernance/lifecycleWorkflows/workflows` — triggers 7 days before `employeeLeaveDateTime` |
+
+**Built-in sponsor tasks used:**
+- **Send email to manager about sponsorship changes** (`b8c4e1f9-3a7d-4b2e-9c5f-8d6a9b1c2e3f`) — Notifies the sponsor's manager
+- **Send email to co-sponsors about sponsor changes** (`ad3b85cd-75b1-43e7-b4b9-0e52faba3944`) — Notifies co-sponsors
+- **Transfer agent identity sponsorships to manager** (`b8f4c3d5-9e7a-4b1c-8f2d-6a5e8b9c7f4a`) — Automatically reassigns sponsorship
+
 ## Identity Primitives Covered
 
 - **Agent Identity Blueprint** — A special application registration (`@odata.type: Microsoft.Graph.AgentIdentityBlueprint`) that serves as the template for agent identities
@@ -145,14 +159,14 @@ Create an Entitlement Management access package that assigns Graph API permissio
 
 > **Note:** Sections 01 through 08 work with any Entra ID tenant that has the Agent ID preview enabled — no additional licenses beyond the base Entra ID Free/P1 are required.
 
-### Section 09 — Access Package Governance (Additional license required)
+### Section 09–10 — Access Packages & Lifecycle Workflows (Additional license required)
 
-5. **License:** One of the following is required for Entitlement Management:
+5. **License:** One of the following is required for Entitlement Management and Lifecycle Workflows:
    - **Microsoft Entra ID Governance** (standalone add-on)
    - **Microsoft Entra Suite**
    - **Microsoft 365 E7**
-6. **Role:** The **Identity Governance Administrator** directory role (or Global Administrator)
-7. **SPA permission:** Add the delegated permission `EntitlementManagement.ReadWrite.All` to your SPA app registration
+6. **Role:** The **Identity Governance Administrator** directory role (or Global Administrator). Section 10 also requires **Lifecycle Workflows Administrator**.
+7. **SPA permission:** Add the delegated permission `EntitlementManagement.ReadWrite.All` and `LifecycleWorkflows.ReadWrite.All` to your SPA app registration
 
 ## Quick Start
 
@@ -250,6 +264,8 @@ The demo covers four distinct authentication patterns:
 - [Entitlement Management Access Packages](https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-create)
 - [Add API Permissions to Access Package](https://learn.microsoft.com/en-us/entra/id-governance/entitlement-management-access-package-resources#add-an-api-permission)
 - [Tutorial: Manage Access Packages via Graph API](https://learn.microsoft.com/en-us/graph/tutorial-access-package-api)
+- [Lifecycle Workflow Built-in Tasks](https://learn.microsoft.com/en-us/entra/id-governance/lifecycle-workflow-tasks)
+- [Agent Identity Sponsor Tasks in Lifecycle Workflows](https://learn.microsoft.com/en-us/entra/id-governance/manage-workflow-agent-sponsors)
 
 ## Disclaimer
 
