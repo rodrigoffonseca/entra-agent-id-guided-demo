@@ -1206,6 +1206,89 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
       </div>
     </section>
 
+    <!-- ======================== SDK CONFIGURATION OVERVIEW ======================== -->
+    <section>
+      <div class="card" style="border-left:3px solid #8e44ad;">
+        <div class="card-header" onclick="toggleCard(this)">
+          <span class="step-badge" style="background:#e8daef; color:#6c3483;">SDK</span>
+          <h2>Microsoft Entra SDK for Agent ID — Sidecar Configuration</h2>
+          <span class="chevron">▶</span>
+        </div>
+        <div class="card-body collapsed">
+          <p class="explanation">
+            The <strong>Microsoft Entra SDK for Agent ID</strong> is a containerized sidecar that handles all token acquisition 
+            internally. Instead of implementing the multi-hop FIC token chain manually (sections 04–05), your application 
+            makes a single HTTP call to the sidecar at <code>localhost:5000</code>. The sidecar performs the complete 
+            FIC chain and returns a ready-to-use authorization header.
+          </p>
+          <div class="info-box info">
+            <span class="icon">📦</span>
+            <div>
+              <strong>Container image:</strong> <code>mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0</code><br>
+              The SDK runs as a companion container alongside your agent application (Docker Compose, Kubernetes, or AKS).
+            </div>
+          </div>
+
+          <h4 style="font-size:13px; margin:16px 0 8px;">Docker Compose Configuration</h4>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">
+            Use the values obtained in sections 01–03 to configure the sidecar environment variables:
+          </p>
+          <div class="api-panel">
+            <div class="api-panel-header">
+              <span class="method-badge POST" style="background:#012456">YAML</span>
+              <span class="api-url">docker-compose.yml — Sidecar Service</span>
+            </div>
+            <div class="api-body">services:
+  auth-sidecar:
+    image: mcr.microsoft.com/entra-sdk/auth-sidecar:1.0.0
+    ports:
+      - "5000:5000"
+    environment:
+      # Core Entra ID Settings (from steps 01.01 & 01.03)
+      - AzureAd__TenantId=<span style="color:#ce9178">{{tenantId}}</span>
+      - AzureAd__ClientId=<span style="color:#ce9178">{{blueprintAppId}}</span>
+      - AzureAd__ClientCredentials__0__SourceType=ClientSecret
+      - AzureAd__ClientCredentials__0__ClientSecret=<span style="color:#ce9178">{{blueprintSecret}}</span>
+
+      # Downstream API Configuration
+      - DownstreamApis__Graph__BaseUrl=https://graph.microsoft.com/v1.0
+      - DownstreamApis__Graph__Scopes=https://graph.microsoft.com/.default
+
+  your-agent:
+    image: your-agent-image:latest
+    environment:
+      - SIDECAR_URL=http://auth-sidecar:5000
+    depends_on:
+      - auth-sidecar</div>
+          </div>
+
+          <details style="margin:12px 0; font-size:12px; color:var(--text-secondary)">
+            <summary style="cursor:pointer; font-weight:600">📋 Configuration Values Mapping</summary>
+            <ul style="margin:8px 0 0 20px; line-height:2">
+              <li><code>AzureAd__TenantId</code> — Your Entra tenant ID (from sign-in)</li>
+              <li><code>AzureAd__ClientId</code> — Blueprint App ID from step 01.01</li>
+              <li><code>AzureAd__ClientCredentials</code> — Blueprint secret (step 01.03) or FIC for Managed Identity</li>
+              <li><code>DownstreamApis__Graph__Scopes</code> — Scopes for MS Graph access</li>
+              <li><code>AgentIdentity</code> — Agent Identity ID from step 02.01 (passed per-request)</li>
+            </ul>
+          </details>
+
+          <div class="info-box warning">
+            <span class="icon">⚠️</span>
+            <div><strong>Provisioning still uses Graph API.</strong> The SDK handles <em>runtime token acquisition</em> only. You still need to create the Blueprint (section 01), Agent Identity (section 02), and Agentic User (section 03) via the Graph API calls shown above. Once provisioned, the SDK handles all authentication flows.</div>
+          </div>
+
+          <div class="doc-links">
+            <h4>📚 Microsoft Documentation</h4>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/overview" target="_blank">📄 SDK Overview</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/installation" target="_blank">📄 Installation Guide</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/configuration" target="_blank">📄 Configuration Reference</a>
+            <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/agent-identities" target="_blank">📄 Agent Identities (SDK)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ======================== SECTION 04 FLOW DIAGRAM ======================== -->
     <section>
       <div class="card" style="border-left:3px solid #0078d4;">
@@ -1313,36 +1396,136 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
             <div><code>fmi_path</code> is a custom OAuth extension. It tells Entra to issue a Federated Identity Credential token that can be exchanged for an Agent Identity token in the next step.</div>
           </div>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge POST">POST</span>
-              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
-            </div>
-            <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0401-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0401-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0401-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+              </div>
+              <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
 
 scope      = api://AzureADTokenExchange/.default
 grant_type = client_credentials
 fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span>   // custom extension</div>
-          </div>
-
-          <div class="info-box info">
-            <span class="icon">💡</span>
-            <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. Click the button to generate a PowerShell command, run it in a terminal, then paste the JSON response back.</div>
-          </div>
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0401()" id="btn-0401">📋 Generate PowerShell for 04.01</button>
-          </div>
-          <div id="cmd-0401" style="display:none">
-            <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
-              <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
-              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0401')">📋 Copy</button>
             </div>
-            <pre class="api-body" id="cmd-text-0401" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0401')" title="Click to copy"></pre>
-            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
-            <textarea id="paste-0401" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
-            <button class="btn btn-primary" onclick="parseStep0401()" style="margin-top:6px">✅ Parse & Store Token</button>
+
+            <div class="info-box info">
+              <span class="icon">💡</span>
+              <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. Click the button to generate a PowerShell command, run it in a terminal, then paste the JSON response back.</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0401()" id="btn-0401">📋 Generate PowerShell for 04.01</button>
+            </div>
+            <div id="cmd-0401" style="display:none">
+              <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
+                <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0401')">📋 Copy</button>
+              </div>
+              <pre class="api-body" id="cmd-text-0401" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0401')" title="Click to copy"></pre>
+              <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+              <textarea id="paste-0401" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+              <button class="btn btn-primary" onclick="parseStep0401()" style="margin-top:6px">✅ Parse & Store Token</button>
+            </div>
+            <div class="response-panel" id="response-0401"></div>
           </div>
-          <div class="response-panel" id="response-0401"></div>
+          <div class="tab-content" id="tab-0401-sdk">
+            <div class="info-box success">
+              <span class="icon">🚀</span>
+              <div><strong>The SDK replaces steps 04.01–04.03 with a single HTTP call.</strong> The sidecar performs the complete 3-hop FIC token chain internally and returns a ready-to-use Graph authorization header for the Digital Colleague.</div>
+            </div>
+
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET">GET</span>
+                <span class="api-url">http://localhost:5000/AuthorizationHeader/Graph</span>
+              </div>
+              <div class="api-body">// Query parameters:
+AgentIdentity = <span style="color:#ce9178">{{agentIdentityId}}</span>     // Agent Identity client ID (step 02.01)
+AgentUsername = <span style="color:#ce9178">{{agentUserUpn}}</span>         // Agentic User UPN (step 03.01)
+
+// The sidecar internally performs:
+//   1. Blueprint FIC token (this step)
+//   2. Agent Identity FIC token (step 04.02)
+//   3. Agent User token exchange (step 04.03)
+// ...and returns a ready-to-use Graph authorization header</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">curl Example</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET" style="background:#333">bash</span>
+                <span class="api-url">Terminal</span>
+              </div>
+              <div class="api-body">curl "http://localhost:5000/AuthorizationHeader/Graph?\
+AgentIdentity=<span style="color:#ce9178">{{agentIdentityId}}</span>&amp;\
+AgentUsername=<span style="color:#ce9178">{{agentUserUpn}}</span>"</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">Response</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge" style="background:#107c10">200</span>
+                <span class="api-url">JSON Response</span>
+              </div>
+              <div class="api-body">{
+  "authorizationHeader": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOi..."
+}
+
+// Use this header to call MS Graph as the Digital Colleague</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">Code Examples</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#3572A5">Python</span>
+                <span class="api-url">Digital Colleague Token via SDK</span>
+              </div>
+              <div class="api-body">import requests
+
+sidecar_url = "http://localhost:5000"
+agent_id = "<span style="color:#ce9178">{{agentIdentityId}}</span>"
+agent_upn = "<span style="color:#ce9178">{{agentUserUpn}}</span>"
+
+response = requests.get(
+    f"{sidecar_url}/AuthorizationHeader/Graph",
+    params={
+        "AgentIdentity": agent_id,
+        "AgentUsername": agent_upn
+    }
+)
+
+auth_header = response.json()["authorizationHeader"]
+# Use auth_header to call MS Graph as the Digital Colleague</div>
+            </div>
+
+            <div class="api-panel" style="margin-top:12px">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#3178C6">TypeScript</span>
+                <span class="api-url">Digital Colleague Token via SDK</span>
+              </div>
+              <div class="api-body">const sidecarUrl = "http://localhost:5000";
+const agentId = "<span style="color:#ce9178">{{agentIdentityId}}</span>";
+const agentUpn = "<span style="color:#ce9178">{{agentUserUpn}}</span>";
+
+const response = await fetch(
+  `${sidecarUrl}/AuthorizationHeader/Graph?` +
+  `AgentIdentity=${agentId}&amp;AgentUsername=${encodeURIComponent(agentUpn)}`
+);
+
+const { authorizationHeader } = await response.json();
+// Use authorizationHeader to call MS Graph as the Digital Colleague</div>
+            </div>
+
+            <div class="doc-links" style="margin-top:16px">
+              <h4>📚 SDK Documentation</h4>
+              <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/agent-identities" target="_blank">📄 Agent Identities (SDK)</a>
+              <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/scenarios/obtain-authorization-header" target="_blank">📄 Obtain Authorization Header</a>
+            </div>
+          </div>
 
           <div class="doc-links">
             <h4>📚 Microsoft Documentation</h4>
@@ -1375,36 +1558,51 @@ fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span>   // custom 
             </div>
           </div>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge POST">POST</span>
-              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
-            </div>
-            <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0402-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0402-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0402-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+              </div>
+              <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
 scope                  = api://AzureADTokenExchange/.default
 grant_type             = client_credentials
 client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion       = <span style="color:#ce9178">{{blueprintFicToken}}</span>  // from step 04.01</div>
-          </div>
-
-          <div class="info-box info">
-            <span class="icon">💡</span>
-            <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
-          </div>
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0402()" id="btn-0402">📋 Generate PowerShell for 04.02</button>
-          </div>
-          <div id="cmd-0402" style="display:none">
-            <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
-              <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
-              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0402')">📋 Copy</button>
             </div>
-            <pre class="api-body" id="cmd-text-0402" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0402')" title="Click to copy"></pre>
-            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
-            <textarea id="paste-0402" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
-            <button class="btn btn-primary" onclick="parseStep0402()" style="margin-top:6px">✅ Parse & Store Token</button>
+
+            <div class="info-box info">
+              <span class="icon">💡</span>
+              <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0402()" id="btn-0402">📋 Generate PowerShell for 04.02</button>
+            </div>
+            <div id="cmd-0402" style="display:none">
+              <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
+                <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0402')">📋 Copy</button>
+              </div>
+              <pre class="api-body" id="cmd-text-0402" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0402')" title="Click to copy"></pre>
+              <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+              <textarea id="paste-0402" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+              <button class="btn btn-primary" onclick="parseStep0402()" style="margin-top:6px">✅ Parse & Store Token</button>
+            </div>
+            <div class="response-panel" id="response-0402"></div>
           </div>
-          <div class="response-panel" id="response-0402"></div>
+          <div class="tab-content" id="tab-0402-sdk">
+            <div class="info-box info">
+              <span class="icon">✅</span>
+              <div><strong>Handled automatically by the SDK.</strong> When you call <code>/AuthorizationHeader/Graph?AgentIdentity=...&amp;AgentUsername=...</code> (shown in step 04.01's SDK tab), the sidecar internally performs the Agent Identity FIC token exchange. You don't need to manage this hop separately.</div>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:12px;">
+              The SDK performs the <code>client_assertion</code> JWT bearer exchange to obtain the Agent Identity's FIC token as an internal step of the token chain. The Blueprint FIC token from the previous hop is used automatically.
+            </p>
+          </div>
 
           <div class="doc-links">
             <h4>📚 Microsoft Documentation</h4>
@@ -1441,12 +1639,17 @@ client_assertion       = <span style="color:#ce9178">{{blueprintFicToken}}</span
             <div>The resulting token lets you call MS Graph <strong>as the Digital Colleague</strong> — with its own email, Teams, calendar, etc.</div>
           </div>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge POST">POST</span>
-              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
-            </div>
-            <div class="api-body">client_id                           = <span style="color:#ce9178">{{agentIdentityId}}</span>
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0403-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0403-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0403-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+              </div>
+              <div class="api-body">client_id                           = <span style="color:#ce9178">{{agentIdentityId}}</span>
 client_assertion_type              = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion                   = <span style="color:#ce9178">{{blueprintFicToken}}</span>
 grant_type                         = user_fic           // custom grant type
@@ -1454,26 +1657,36 @@ requested_token_use                = on_behalf_of
 scope                              = https://graph.microsoft.com/.default
 username                           = <span style="color:#ce9178">{{agentUserUpn}}</span>
 user_federated_identity_credential = <span style="color:#ce9178">{{agentIdentityFicToken}}</span></div>
-          </div>
-
-          <div class="info-box info">
-            <span class="icon">💡</span>
-            <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
-          </div>
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0403()" id="btn-0403">📋 Generate PowerShell for 04.03</button>
-          </div>
-          <div id="cmd-0403" style="display:none">
-            <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
-              <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
-              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0403')">📋 Copy</button>
             </div>
-            <pre class="api-body" id="cmd-text-0403" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0403')" title="Click to copy"></pre>
-            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
-            <textarea id="paste-0403" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
-            <button class="btn btn-primary" onclick="parseStep0403()" style="margin-top:6px">✅ Parse & Store Token</button>
+
+            <div class="info-box info">
+              <span class="icon">💡</span>
+              <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0403()" id="btn-0403">📋 Generate PowerShell for 04.03</button>
+            </div>
+            <div id="cmd-0403" style="display:none">
+              <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
+                <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0403')">📋 Copy</button>
+              </div>
+              <pre class="api-body" id="cmd-text-0403" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0403')" title="Click to copy"></pre>
+              <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+              <textarea id="paste-0403" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+              <button class="btn btn-primary" onclick="parseStep0403()" style="margin-top:6px">✅ Parse & Store Token</button>
+            </div>
+            <div class="response-panel" id="response-0403"></div>
           </div>
-          <div class="response-panel" id="response-0403"></div>
+          <div class="tab-content" id="tab-0403-sdk">
+            <div class="info-box info">
+              <span class="icon">✅</span>
+              <div><strong>Handled automatically by the SDK.</strong> The <code>user_fic</code> grant type exchange is the final internal hop performed by the sidecar when you specify both <code>AgentIdentity</code> and <code>AgentUsername</code>. The returned authorization header already contains the Digital Colleague's Graph token.</div>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:12px;">
+              The SDK uses the <code>AgentUsername</code> parameter to determine this is a Digital Colleague (interactive agent) scenario and performs the <code>user_fic</code> grant type exchange internally, returning a token that represents the Agentic User.
+            </p>
+          </div>
 
           <div class="doc-links">
             <h4>📚 Microsoft Documentation</h4>
@@ -1498,18 +1711,71 @@ user_federated_identity_credential = <span style="color:#ce9178">{{agentIdentity
             confirming the token correctly represents the Digital Colleague.
           </p>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge GET">GET</span>
-              <span class="api-url">https://graph.microsoft.com/v1.0/me</span>
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0404-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0404-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0404-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET">GET</span>
+                <span class="api-url">https://graph.microsoft.com/v1.0/me</span>
+              </div>
+              <div class="api-body">// Authorization: Bearer {{agentUserToken}}  (from step 04.03)</div>
             </div>
-            <div class="api-body">// Authorization: Bearer {{agentUserToken}}  (from step 04.03)</div>
-          </div>
 
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0404()" id="btn-0404">▶ Execute Step 04.04</button>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0404()" id="btn-0404">▶ Execute Step 04.04</button>
+            </div>
+            <div class="response-panel" id="response-0404"></div>
           </div>
-          <div class="response-panel" id="response-0404"></div>
+          <div class="tab-content" id="tab-0404-sdk">
+            <div class="info-box success">
+              <span class="icon">🚀</span>
+              <div><strong>Call MS Graph directly through the SDK</strong> using the <code>/DownstreamApi</code> endpoint. The sidecar acquires the token AND makes the Graph call for you in one step.</div>
+            </div>
+
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET">GET</span>
+                <span class="api-url">http://localhost:5000/DownstreamApi/Graph</span>
+              </div>
+              <div class="api-body">// Query parameters:
+AgentIdentity                = <span style="color:#ce9178">{{agentIdentityId}}</span>
+AgentUsername                = <span style="color:#ce9178">{{agentUserUpn}}</span>
+optionsOverride.RelativePath = me
+
+// The sidecar acquires the token AND calls Graph /me for you</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">curl Example</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET" style="background:#333">bash</span>
+                <span class="api-url">Terminal</span>
+              </div>
+              <div class="api-body">curl "http://localhost:5000/DownstreamApi/Graph?\
+AgentIdentity=<span style="color:#ce9178">{{agentIdentityId}}</span>&amp;\
+AgentUsername=<span style="color:#ce9178">{{agentUserUpn}}</span>&amp;\
+optionsOverride.RelativePath=me"</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">Alternative: Use the Authorization Header</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET" style="background:#333">bash</span>
+                <span class="api-url">Two-step approach</span>
+              </div>
+              <div class="api-body"># Step 1: Get the authorization header from the SDK
+AUTH=$(curl -s "http://localhost:5000/AuthorizationHeader/Graph?\
+AgentIdentity=<span style="color:#ce9178">{{agentIdentityId}}</span>&amp;\
+AgentUsername=<span style="color:#ce9178">{{agentUserUpn}}</span>" | jq -r '.authorizationHeader')
+
+# Step 2: Call MS Graph with the token
+curl -H "Authorization: $AUTH" \
+  "https://graph.microsoft.com/v1.0/me"</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1603,36 +1869,115 @@ user_federated_identity_credential = <span style="color:#ce9178">{{agentIdentity
             </div>
           </div>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge POST">POST</span>
-              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
-            </div>
-            <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0501-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0501-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0501-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+              </div>
+              <div class="api-body">// Authorization: Basic base64(blueprintAppId:blueprintSecret)
 
 scope      = api://AzureADTokenExchange/.default
 grant_type = client_credentials
 fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span></div>
-          </div>
-
-          <div class="info-box info">
-            <span class="icon">💡</span>
-            <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
-          </div>
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0501()" id="btn-0501">📋 Generate PowerShell for 05.01</button>
-          </div>
-          <div id="cmd-0501" style="display:none">
-            <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
-              <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
-              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0501')">📋 Copy</button>
             </div>
-            <pre class="api-body" id="cmd-text-0501" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0501')" title="Click to copy"></pre>
-            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
-            <textarea id="paste-0501" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
-            <button class="btn btn-primary" onclick="parseStep0501()" style="margin-top:6px">✅ Parse & Store Token</button>
+
+            <div class="info-box info">
+              <span class="icon">💡</span>
+              <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0501()" id="btn-0501">📋 Generate PowerShell for 05.01</button>
+            </div>
+            <div id="cmd-0501" style="display:none">
+              <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
+                <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0501')">📋 Copy</button>
+              </div>
+              <pre class="api-body" id="cmd-text-0501" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0501')" title="Click to copy"></pre>
+              <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+              <textarea id="paste-0501" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+              <button class="btn btn-primary" onclick="parseStep0501()" style="margin-top:6px">✅ Parse & Store Token</button>
+            </div>
+            <div class="response-panel" id="response-0501"></div>
           </div>
-          <div class="response-panel" id="response-0501"></div>
+          <div class="tab-content" id="tab-0501-sdk">
+            <div class="info-box success">
+              <span class="icon">🚀</span>
+              <div><strong>The SDK replaces steps 05.01–05.02 with a single HTTP call.</strong> For autonomous agents (no user context), pass only <code>AgentIdentity</code> without <code>AgentUsername</code>. The sidecar performs the 2-hop FIC chain and returns an application-level Graph token.</div>
+            </div>
+
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET">GET</span>
+                <span class="api-url">http://localhost:5000/AuthorizationHeader/Graph</span>
+              </div>
+              <div class="api-body">// Query parameters:
+AgentIdentity = <span style="color:#ce9178">{{agentIdentityId}}</span>     // Agent Identity client ID (step 02.01)
+
+// No AgentUsername = Autonomous Agent pattern
+// The sidecar internally performs:
+//   1. Blueprint FIC token (this step)
+//   2. Agent Identity Graph token (step 05.02)
+// ...and returns a ready-to-use application-level Graph token</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">curl Example</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge GET" style="background:#333">bash</span>
+                <span class="api-url">Terminal</span>
+              </div>
+              <div class="api-body">curl "http://localhost:5000/AuthorizationHeader/Graph?\
+AgentIdentity=<span style="color:#ce9178">{{agentIdentityId}}</span>"</div>
+            </div>
+
+            <h4 style="font-size:13px; margin:16px 0 8px;">Code Examples</h4>
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#3572A5">Python</span>
+                <span class="api-url">Autonomous Agent Token via SDK</span>
+              </div>
+              <div class="api-body">import requests
+
+sidecar_url = "http://localhost:5000"
+agent_id = "<span style="color:#ce9178">{{agentIdentityId}}</span>"
+
+response = requests.get(
+    f"{sidecar_url}/AuthorizationHeader/Graph",
+    params={"AgentIdentity": agent_id}
+)
+
+auth_header = response.json()["authorizationHeader"]
+# Use auth_header to call MS Graph as the Autonomous Agent</div>
+            </div>
+
+            <div class="api-panel" style="margin-top:12px">
+              <div class="api-panel-header">
+                <span class="method-badge POST" style="background:#3178C6">TypeScript</span>
+                <span class="api-url">Autonomous Agent Token via SDK</span>
+              </div>
+              <div class="api-body">const sidecarUrl = "http://localhost:5000";
+const agentId = "<span style="color:#ce9178">{{agentIdentityId}}</span>";
+
+const response = await fetch(
+  `${sidecarUrl}/AuthorizationHeader/Graph?AgentIdentity=${agentId}`
+);
+
+const { authorizationHeader } = await response.json();
+// Use authorizationHeader to call MS Graph as the Autonomous Agent</div>
+            </div>
+
+            <div class="doc-links" style="margin-top:16px">
+              <h4>📚 SDK Documentation</h4>
+              <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/scenarios/agent-autonomous-batch" target="_blank">📄 Agent Autonomous Batch Processing</a>
+              <a class="doc-link" href="https://learn.microsoft.com/en-us/entra/msidweb/agent-id-sdk/agent-identities" target="_blank">📄 Agent Identities (SDK)</a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1663,36 +2008,51 @@ fmi_path   = <span style="color:#ce9178">{{agentIdentityId}}</span></div>
             <div>This token represents the <strong>Autonomous Agent</strong> — it can access any Graph resources the Agent Identity has application permissions for.</div>
           </div>
 
-          <div class="api-panel">
-            <div class="api-panel-header">
-              <span class="method-badge POST">POST</span>
-              <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
-            </div>
-            <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab(this, 'tab-0502-graph')">📡 Graph API (Manual)</div>
+            <div class="tab" onclick="switchTab(this, 'tab-0502-sdk')">📦 SDK Sidecar</div>
+          </div>
+          <div class="tab-content active" id="tab-0502-graph">
+            <div class="api-panel">
+              <div class="api-panel-header">
+                <span class="method-badge POST">POST</span>
+                <span class="api-url">https://login.microsoftonline.com/<span style="color:#ce9178">{{tenantId}}</span>/oauth2/v2.0/token</span>
+              </div>
+              <div class="api-body">client_id              = <span style="color:#ce9178">{{agentIdentityId}}</span>
 scope                  = https://graph.microsoft.com/.default
 grant_type             = client_credentials
 client_assertion_type  = urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion       = <span style="color:#ce9178">{{autonomousFicToken}}</span></div>
-          </div>
-
-          <div class="info-box info">
-            <span class="icon">💡</span>
-            <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
-          </div>
-          <div class="btn-group">
-            <button class="btn btn-primary" onclick="executeStep0502()" id="btn-0502">📋 Generate PowerShell for 05.02</button>
-          </div>
-          <div id="cmd-0502" style="display:none">
-            <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
-              <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
-              <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0502')">📋 Copy</button>
             </div>
-            <pre class="api-body" id="cmd-text-0502" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0502')" title="Click to copy"></pre>
-            <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
-            <textarea id="paste-0502" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
-            <button class="btn btn-primary" onclick="parseStep0502()" style="margin-top:6px">✅ Parse & Store Token</button>
+
+            <div class="info-box info">
+              <span class="icon">💡</span>
+              <div>The <code>client_credentials</code> flow is blocked by CORS in browsers. A PowerShell command will be generated — run it in a terminal and paste the JSON back.</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="executeStep0502()" id="btn-0502">📋 Generate PowerShell for 05.02</button>
+            </div>
+            <div id="cmd-0502" style="display:none">
+              <div style="display:flex; align-items:center; padding:4px 12px; background:#252526; border-radius:6px 6px 0 0; border:1px solid #555; border-bottom:none">
+                <span style="color:#888; font-size:12px">PowerShell — Run in terminal</span>
+                <button class="btn btn-sm" style="margin-left:auto; background:rgba(255,255,255,0.1); color:#9cdcfe; border:1px solid rgba(255,255,255,0.2)" onclick="copyCmd('cmd-text-0502')">📋 Copy</button>
+              </div>
+              <pre class="api-body" id="cmd-text-0502" style="white-space:pre-wrap;cursor:pointer;position:relative;border-radius:0 0 6px 6px;margin-top:0" onclick="copyCmd('cmd-text-0502')" title="Click to copy"></pre>
+              <p style="margin:8px 0 4px"><strong>Paste the JSON response below:</strong></p>
+              <textarea id="paste-0502" rows="5" style="width:100%;font-family:monospace;font-size:13px;padding:8px;border:1px solid #555;border-radius:6px;background:#1e1e1e;color:#d4d4d4" placeholder='Paste the full JSON response here...'></textarea>
+              <button class="btn btn-primary" onclick="parseStep0502()" style="margin-top:6px">✅ Parse & Store Token</button>
+            </div>
+            <div class="response-panel" id="response-0502"></div>
           </div>
-          <div class="response-panel" id="response-0502"></div>
+          <div class="tab-content" id="tab-0502-sdk">
+            <div class="info-box info">
+              <span class="icon">✅</span>
+              <div><strong>Handled automatically by the SDK.</strong> When you call <code>/AuthorizationHeader/Graph?AgentIdentity=...</code> (shown in step 05.01's SDK tab), the sidecar internally exchanges the Blueprint FIC token for an MS Graph application token. You don't need to manage this hop separately.</div>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:12px;">
+              The SDK performs the <code>client_credentials</code> + <code>client_assertion</code> exchange internally, acquiring an application-level MS Graph token for the Agent Identity. The token has whatever <strong>application permissions</strong> were granted to the Agent Identity.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -3991,9 +4351,16 @@ function scrollToSection(id) {
 }
 
 function switchTab(tabEl, contentId) {
-  const parent = tabEl.closest('.card-body');
-  parent.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  parent.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const tabBar = tabEl.closest('.tabs');
+  const parent = tabBar.parentElement;
+  // Only deactivate siblings within this tab group
+  tabBar.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  // Find tab-content elements that are siblings of this tab bar
+  let sibling = tabBar.nextElementSibling;
+  while (sibling && sibling.classList.contains('tab-content')) {
+    sibling.classList.remove('active');
+    sibling = sibling.nextElementSibling;
+  }
   tabEl.classList.add('active');
   document.getElementById(contentId)?.classList.add('active');
 }
