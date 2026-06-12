@@ -455,7 +455,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
             <div class="form-group">
               <label>Sponsor — User UPN or Group name</label>
               <input type="text" id="cfg-sponsorInput" placeholder="e.g. admin@contoso.com or My Security Group" oninput="saveConfig()">
-              <span class="hint">Enter a user UPN (user@domain.com) or a group display name. We'll resolve the Object ID and type automatically.</span>
+              <span class="hint">Enter a user UPN or a group display name. We'll resolve the Object ID and type automatically.</span>
             </div>
             <div class="form-group" style="display:none">
               <input type="hidden" id="cfg-sponsorGroupId">
@@ -4066,7 +4066,7 @@ async function verifyUserRoles() {
 
     // Show all detected roles for transparency
     if (roles.length > 0) {
-      html += `<div style="margin-top:6px; opacity:0.7; font-size:11px">Detected roles: ${roles.join(', ')}</div>`;
+      html += `<div style="margin-top:6px; opacity:0.7; font-size:11px">Detected roles: ${escapeHtml(roles.join(', '))}</div>`;
     } else {
       html += `<div style="margin-top:6px; opacity:0.7; font-size:11px">⚠️ No directory roles detected. If the role was assigned via PIM (Privileged Identity Management), make sure it is <strong>activated</strong>. Try signing out and back in after activation.</div>`;
     }
@@ -4110,7 +4110,7 @@ async function verifyUserRoles() {
     results.innerHTML = html;
   } catch (err) {
     console.error('Role check error:', err);
-    results.innerHTML = `<span style="color:#f4a5a5">⚠️ Could not verify roles: ${err.message}. You may still proceed — role issues will surface when executing steps.</span>`;
+    results.innerHTML = `<span style="color:#f4a5a5">⚠️ Could not verify roles: ${escapeHtml(err.message)}. You may still proceed — role issues will surface when executing steps.</span>`;
   }
 }
 
@@ -5085,7 +5085,7 @@ function renderAuditTable(containerId, rows, columns) {
     const bg = row._auditStatus === 'missingSponsors' ? '#fde7e9' : row._auditStatus === 'checkFailed' ? '#fff4ce' : '';
     html += `<tr style="${bg ? 'background:' + bg : ''}">`;
     columns.forEach(c => {
-      let val = c.render ? c.render(row) : (row[c.key] ?? '');
+      let val = c.render ? c.render(row) : escapeHtml(String(row[c.key] ?? ''));
       html += `<td style="padding:6px 8px; border-bottom:1px solid var(--border); word-break:break-all">${val}</td>`;
     });
     html += '</tr>';
@@ -5339,19 +5339,19 @@ async function previewBulkAssign(type) {
       <div class="api-panel">
         <div class="api-panel-header">
           <span class="method-badge POST">POST</span>
-          <span class="api-url">${apiUrl}</span>
+          <span class="api-url">${escapeHtml(apiUrl)}</span>
         </div>
-        <div class="api-body">${body}</div>
+        <div class="api-body">${escapeHtml(body)}</div>
       </div>
       <div style="font-size:12px; color:var(--text-secondary); margin-top:6px; line-height:1.7">
-        <strong>Sponsor resolved:</strong> ${sponsor.displayName} (<code>${sponsor.id}</code>)<br>
+        <strong>Sponsor resolved:</strong> ${escapeHtml(sponsor.displayName)} (<code>${escapeHtml(sponsor.id)}</code>)<br>
         <strong>Targets:</strong> ${flagged.length} ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'} missing sponsors<br>
-        <strong>Example target:</strong> <code>${flagged[0].displayName}</code> → <code>…/${endpoint}/${exampleId}/sponsors/$ref</code>
+        <strong>Example target:</strong> <code>${escapeHtml(flagged[0].displayName)}</code> → <code>…/${endpoint}/${escapeHtml(exampleId)}/sponsors/$ref</code>
       </div>`;
     previewEl.style.display = 'block';
     showToast(`✅ Sponsor resolved: ${sponsor.displayName} — review the API call above, then click Assign.`);
   } catch (e) {
-    previewEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${e.message}</div></div>`;
+    previewEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${escapeHtml(e.message)}</div></div>`;
     previewEl.style.display = 'block';
   }
 }
@@ -5419,10 +5419,10 @@ async function bulkAssignSponsor(type) {
     // Show result summary
     let resultHtml = '';
     if (succeeded > 0) {
-      resultHtml += `<div class="info-box success"><span class="icon">✅</span><div><strong>${succeeded}</strong> ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'} updated with sponsor <strong>${sponsor.displayName}</strong>.</div></div>`;
+      resultHtml += `<div class="info-box success"><span class="icon">✅</span><div><strong>${succeeded}</strong> ${isBlueprint ? 'blueprint(s)' : 'identity(ies)'} updated with sponsor <strong>${escapeHtml(sponsor.displayName)}</strong>.</div></div>`;
     }
     if (failed > 0) {
-      resultHtml += `<div class="info-box danger"><span class="icon">❌</span><div><strong>${failed}</strong> failed:<ul style="margin:4px 0 0 16px; font-size:12px">${errors.map(e => `<li>${e}</li>`).join('')}</ul></div></div>`;
+      resultHtml += `<div class="info-box danger"><span class="icon">❌</span><div><strong>${failed}</strong> failed:<ul style="margin:4px 0 0 16px; font-size:12px">${errors.map(e => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div></div>`;
     }
     if (succeeded > 0) {
       resultHtml += `<div class="info-box info" style="font-size:12px"><span class="icon">💡</span><div>Run the audit again to verify the updated sponsor assignments.</div></div>`;
@@ -5432,7 +5432,7 @@ async function bulkAssignSponsor(type) {
     showToast(`✅ Done: ${succeeded} assigned, ${failed} failed.`);
   } catch (e) {
     progressEl.style.display = 'none';
-    resultEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${e.message}</div></div>`;
+    resultEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${escapeHtml(e.message)}</div></div>`;
     resultEl.style.display = 'block';
     showToast('❌ ' + e.message);
   }
