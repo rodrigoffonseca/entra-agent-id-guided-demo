@@ -4419,25 +4419,64 @@ function showResponse(panelId, status, data, extra) {
   const panel = el(panelId);
   if (!panel) return;
   const isOk = status >= 200 && status < 300;
-  let bodyContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  panel.innerHTML = `
-    <div class="response-header">
-      <span>Response:</span>
-      <span class="status-badge ${isOk ? 'success' : 'error'}">${status} ${isOk ? 'Success' : 'Error'}</span>
-      ${extra ? `<span style="font-size:11px;color:var(--text-muted)">${extra}</span>` : ''}
-      <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(this.closest('.response-panel').querySelector('.response-body').textContent);showToast('Copied!')">📋 Copy</button>
-    </div>
-    <div class="response-body">${escapeHtml(bodyContent)}</div>`;
+  const bodyContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+
+  panel.textContent = '';
+  const header = document.createElement('div');
+  header.className = 'response-header';
+
+  const labelSpan = document.createElement('span');
+  labelSpan.textContent = 'Response:';
+  header.appendChild(labelSpan);
+
+  const badge = document.createElement('span');
+  badge.className = 'status-badge ' + (isOk ? 'success' : 'error');
+  badge.textContent = status + ' ' + (isOk ? 'Success' : 'Error');
+  header.appendChild(badge);
+
+  if (extra) {
+    const extraSpan = document.createElement('span');
+    extraSpan.style.cssText = 'font-size:11px;color:var(--text-muted)';
+    extraSpan.textContent = extra;
+    header.appendChild(extraSpan);
+  }
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'btn btn-sm btn-secondary';
+  copyBtn.textContent = '📋 Copy';
+  copyBtn.onclick = function() {
+    navigator.clipboard.writeText(panel.querySelector('.response-body').textContent);
+    showToast('Copied!');
+  };
+  header.appendChild(copyBtn);
+
+  const body = document.createElement('div');
+  body.className = 'response-body';
+  body.textContent = bodyContent;
+
+  panel.appendChild(header);
+  panel.appendChild(body);
 }
 
 function showError(panelId, error) {
   const panel = el(panelId);
   if (!panel) return;
-  panel.innerHTML = `
-    <div class="response-header">
-      <span class="status-badge error">❌ Error</span>
-    </div>
-    <div class="response-body" style="color:#f48771">${escapeHtml(error.toString())}</div>`;
+
+  panel.textContent = '';
+  const header = document.createElement('div');
+  header.className = 'response-header';
+  const badge = document.createElement('span');
+  badge.className = 'status-badge error';
+  badge.textContent = '❌ Error';
+  header.appendChild(badge);
+
+  const body = document.createElement('div');
+  body.className = 'response-body';
+  body.style.color = '#f48771';
+  body.textContent = error.toString();
+
+  panel.appendChild(header);
+  panel.appendChild(body);
 }
 
 function escapeHtml(str) {
