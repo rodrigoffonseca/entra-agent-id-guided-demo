@@ -4091,7 +4091,7 @@ async function verifyUserRoles() {
           const found = grantedScopes.some(s => s.toLowerCase() === scope.toLowerCase());
           const icon = found ? '✅' : '⚠️';
           const style = found ? 'color:#a3e4a3' : 'color:#ffe4a0';
-          html += `<div style="${style}">${icon} <code style="background:rgba(0,0,0,0.2);padding:1px 6px;border-radius:3px">${scope}</code>${found ? '' : ' — not yet consented (will be prompted on first use)'}</div>`;
+          html += `<div style="${style}">${icon} <code style="background:rgba(0,0,0,0.2);padding:1px 6px;border-radius:3px">${escapeHtml(scope)}</code>${found ? '' : ' — not yet consented (will be prompted on first use)'}</div>`;
         }
       }
     }
