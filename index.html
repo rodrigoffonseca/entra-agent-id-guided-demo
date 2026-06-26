@@ -1216,9 +1216,9 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); line
         </div>
         <div class="card-body collapsed">
           <p class="explanation">
-            The <strong>Microsoft Entra SDK for Agent ID</strong> is a containerized sidecar that handles all token acquisition 
-            internally. Instead of implementing the multi-hop FIC token chain manually (sections 04–05), your application 
-            makes a single HTTP call to the sidecar at <code>localhost:5000</code>. The sidecar performs the complete 
+            The <strong>Microsoft Entra SDK for Agent ID</strong> is a containerized sidecar that handles all token acquisition
+            internally. Instead of implementing the multi-hop FIC token chain manually (sections 04–05), your application
+            makes a single HTTP call to the sidecar at <code>localhost:5000</code>. The sidecar performs the complete
             FIC chain and returns a ready-to-use authorization header.
           </p>
           <div class="info-box info">
@@ -5390,7 +5390,8 @@ async function previewBulkAssign(type) {
     previewEl.style.display = 'block';
     showToast(`✅ Sponsor resolved: ${sponsor.displayName} — review the API call above, then click Assign.`);
   } catch (e) {
-    previewEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${escapeHtml(e.message)}</div></div>`;
+    const msg = escapeHtml(String(e?.message ?? e));
+    previewEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${msg}</div></div>`;
     previewEl.style.display = 'block';
   }
 }
@@ -5471,9 +5472,10 @@ async function bulkAssignSponsor(type) {
     showToast(`✅ Done: ${succeeded} assigned, ${failed} failed.`);
   } catch (e) {
     progressEl.style.display = 'none';
-    resultEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${escapeHtml(e.message)}</div></div>`;
+    const msg = escapeHtml(String(e?.message ?? e));
+    resultEl.innerHTML = `<div class="info-box danger"><span class="icon">❌</span><div>${msg}</div></div>`;
     resultEl.style.display = 'block';
-    showToast('❌ ' + e.message);
+    showToast('❌ ' + (e?.message ?? e));
   }
   setLoading(btnId, false);
 }
